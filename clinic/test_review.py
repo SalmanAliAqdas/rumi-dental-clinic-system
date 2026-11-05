@@ -61,3 +61,24 @@ class DiagnosticTests(SimpleTestCase):
             handler.emit(logging.LogRecord('django.security.csrf', logging.WARNING, '', 0, 'private request body', (), None))
             stderr.write.assert_not_called()
         handler.close()
+
+
+class DiagnosticRequestTests(TestCase):
+    def test_generic_500_correlates_safe_diagnostic_without_sensitive_values(self):
+        from unittest.mock import patch
+        user = User.objects.create_superuser('diagnostic-owner')
+        self.client.force_login(user)
+        self.client.raise_request_exception = False
+        sensitive = 'private_password_phone_and_clinical_text_03001234567'
+        with tempfile.TemporaryDirectory() as directory, override_settings(DATA_DIR=Path(directory)):
+            with patch('clinic.views.Patient.objects.count', side_effect=ValueError(sensitive)):
+                response = self.client.get('/?secret=' + sensitive)
+            self.assertEqual(response.status_code, 500)
+            self.assertNotContains(response, sensitive, status_code=500)
+            self.assertContains(response, 'Unable to complete the request', status_code=500)
+            data = (Path(directory) / 'diagnostics/events.log').read_text()
+            self.assertNotIn(sensitive, data)
+            event = json.loads(data.splitlines()[-1])
+            self.assertEqual(response.headers['X-Rumi-Error-ID'], event['event_id'])
+            self.assertEqual(event['exception'], 'ValueError')
+            self.assertTrue(any(location['source'] == 'clinic/views.py' for location in event['locations']))

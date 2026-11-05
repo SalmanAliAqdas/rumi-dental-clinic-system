@@ -1,0 +1,9 @@
+<fieldset class="tooth-picker"><legend>FDI dental chart — select multiple teeth</legend>
+<p class="hint">Patient's right is on the left of this chart. Patient's left is on the right. Each checkbox has a text label. Leave all teeth unchecked for general care; use Area when helpful.</p>
+<div class="chart-orientation"><strong>Patient RIGHT</strong><strong>Patient LEFT</strong></div>
+<p><strong>Adult permanent teeth</strong></p>
+{% for row in adult_rows %}<div class="tooth-row adult">{% for tooth in row %}<label class="tooth"><input type="checkbox" name="teeth" value="{{ tooth }}" {% if tooth in field.value %}checked{% endif %}><span>{{ tooth }}</span><span class="sr-only">Adult FDI tooth {{ tooth }}</span></label>{% endfor %}</div>{% endfor %}
+<p><strong>Children's primary teeth</strong></p>
+{% for row in primary_rows %}<div class="tooth-row primary">{% for tooth in row %}<label class="tooth"><input type="checkbox" name="teeth" value="{{ tooth }}" {% if tooth in field.value %}checked{% endif %}><span>{{ tooth }}</span><span class="sr-only">Primary FDI tooth {{ tooth }}</span></label>{% endfor %}</div>{% endfor %}
+<p class="hint">Legend: checked box + green border = selected; unchecked box + charcoal background = unselected. FDI numbers and selection marks remain readable without colour.</p>
+{{ field.errors }}</fieldset>

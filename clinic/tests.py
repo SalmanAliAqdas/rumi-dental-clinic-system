@@ -79,10 +79,10 @@ class ClinicTests(TestCase):
         self.assertEqual(patient.number, number)
         self.assertEqual(patient.full_name, 'Fictional Edited')
         self.assertEqual(patient.updated_by, self.doctor)
-        self.assertEqual(list(AuditEvent.objects.filter(patient=patient).order_by('pk').values_list('action', flat=True)), ['create', 'view', 'update'])
+        self.assertEqual(list(AuditEvent.objects.filter(patient=patient, action__in=['create', 'view', 'update']).order_by('pk').values_list('action', flat=True)), ['create', 'view', 'update'])
         event = AuditEvent.objects.filter(patient=patient).first()
         self.assertEqual(event.actor, self.doctor)
-        self.assertEqual({f.name for f in event._meta.fields}, {'id', 'actor', 'patient', 'action', 'occurred_at'})
+        self.assertEqual({f.name for f in event._meta.fields}, {'id', 'actor', 'patient', 'action', 'occurred_at', 'object_type', 'object_id'})
 
     def test_patient_numbers_unique_and_permanent(self):
         other = Patient.objects.create(full_name='Other', phone=FORMATS[0], created_by=self.owner, updated_by=self.owner)

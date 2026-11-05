@@ -9,7 +9,7 @@
 </div>
 <section class="panel">
 {% for event in page %}
-<p>{{ event.occurred_at|date:'d M Y, H:i:s' }} · {{ event.actor.username }} · {{ event.get_action_display }} · <a href="{% url 'patient_detail' event.patient_id %}">{{ event.patient.number }}</a>
+<p>{{ event.occurred_at|date:'d M Y, H:i:s' }} · {{ event.actor.username }} · {{ event.action }} · <a href="{% url 'patient_detail' event.patient_id %}">{{ event.patient.number }}</a>
 </p>
 {% empty %}
 <p>No audit events recorded.</p>

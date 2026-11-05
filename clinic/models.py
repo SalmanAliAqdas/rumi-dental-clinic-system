@@ -49,10 +49,15 @@ class Patient(models.Model):
 class AuditEvent(models.Model):
     actor = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
     patient = models.ForeignKey(Patient, on_delete=models.PROTECT)
-    action = models.CharField(max_length=12, choices=[('create', 'Created'), ('update', 'Updated'), ('view', 'Viewed')])
+    action = models.CharField(max_length=32)
+    object_type = models.CharField(max_length=32, blank=True)
+    object_id = models.PositiveBigIntegerField(null=True, blank=True)
     occurred_at = models.DateTimeField(default=timezone.now)
 
 class LoginAttempt(models.Model):
     key = models.CharField(max_length=64, unique=True)
     failures = models.PositiveIntegerField(default=0)
     window_started = models.DateTimeField(default=timezone.now)
+
+from .clinical_models import (MedicalReview, Visit, VisitAmendment, Procedure, TreatmentPlan,
+    PlanItem, PlanRevision, PerformedWork, ToothObservation, Attachment)

@@ -1,0 +1,5 @@
+{% load clinical_labels %}<dl class="medical-snapshot">
+{% for key, value in snapshot.items %}
+  <div><dt>{{ key|clinical_label }}</dt><dd class="preserve">{% if value.state == 'not_recorded' %}Not recorded{% elif value.state == 'none' %}Patient reports none{% else %}{{ value.details }}{% endif %}</dd></div>
+{% endfor %}
+</dl>

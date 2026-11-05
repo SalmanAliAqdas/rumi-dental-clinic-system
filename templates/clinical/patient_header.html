@@ -1,0 +1,14 @@
+<div class="page-heading">
+  <div><p class="eyebrow">{{ patient.number }}</p><h1>{{ patient.full_name }}</h1><p class="muted">{{ patient.age_display }} · {{ patient.phone }}</p></div>
+  <a class="button" href="{% url 'visit_new' patient.pk %}">+ Start Visit</a>
+</div>
+<div class="clinical-alerts"><strong>Allergies:</strong> {{ patient.allergies|default:'Not recorded — confirm with patient' }}<br><strong>Medical alerts:</strong> {{ patient.medical_alerts|default:'Not recorded — confirm with patient' }}</div>
+<nav class="profile-nav" aria-label="Patient clinical sections">
+  <a href="{% url 'patient_detail' patient.pk %}">Overview</a>
+  <a href="{% url 'clinical_section' patient.pk 'visits' %}">Visits</a>
+  <a href="{% url 'clinical_section' patient.pk 'medical' %}">Medical History</a>
+  <a href="{% url 'clinical_section' patient.pk 'chart' %}">Dental Chart</a>
+  <a href="{% url 'clinical_section' patient.pk 'plans' %}">Treatment Plans</a>
+  <a href="{% url 'clinical_section' patient.pk 'attachments' %}">Attachments / X-rays</a>
+  <span>Prescriptions · Phase 4</span><span>Payments · Phase 3</span>
+</nav>

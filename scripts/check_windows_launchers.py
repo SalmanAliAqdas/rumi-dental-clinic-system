@@ -97,7 +97,7 @@ def main():
             assert fingerprint(database) == before_fixture
             print('PASS: real CMD resolves a path containing spaces from another working directory, overrides wrong terminal settings, and checks migrations without modifying the database.', flush=True)
             with closing(sqlite3.connect(database)) as connection:
-                row = connection.execute("SELECT app,name,applied FROM django_migrations WHERE app='clinic'").fetchone()
+                rows = connection.execute("SELECT app,name,applied FROM django_migrations WHERE app='clinic'").fetchall()
                 with connection:
                     connection.execute("DELETE FROM django_migrations WHERE app='clinic'")
             pending_fingerprint = fingerprint(database)
@@ -106,7 +106,7 @@ def main():
             assert fingerprint(database) == pending_fingerprint
             with closing(sqlite3.connect(database)) as connection:
                 with connection:
-                    connection.execute('INSERT INTO django_migrations (app,name,applied) VALUES (?,?,?)', row)
+                    connection.executemany('INSERT INTO django_migrations (app,name,applied) VALUES (?,?,?)', rows)
             print('PASS: pending migrations are refused, never applied automatically.', flush=True)
             shell_command = "Write-Output ('SHELL_PROOF=' + $env:DJANGO_SETTINGS_MODULE + '|' + $env:RUMI_DATA_DIR + '|' + (Get-Location).Path); exit\n"
             result = run_cmd(fixture / 'clinic-shell.cmd', input=shell_command)

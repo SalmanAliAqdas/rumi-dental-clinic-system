@@ -1,0 +1,20 @@
+{% extends 'base.html' %}{% load static %}
+{% block title %}{{ heading }} · Rumi Dental Care{% endblock %}
+{% block content %}
+{% include 'clinical/patient_header.html' %}
+<section class="panel"><h2>{{ heading }}</h2>
+{% if creating_visit %}<p class="muted">Returning patients get a new visit. Review the current medical state before starting. Multiple visits on one day are supported.</p>{% include 'clinical/medical_snapshot.html' with snapshot=current_medical %}{% endif %}
+{% if editing_visit %}<p class="muted">This visit retains the medical review from {{ visit.medical_review.reviewed_at|date:'d M Y H:i' }}. Draft saves preserve notes on the server; completed notes require amendments.</p>{% include 'clinical/medical_snapshot.html' with snapshot=visit.medical_review.snapshot %}<p id="save-state" role="status" aria-live="polite">Saved revision {{ visit.revision }}</p>{% endif %}
+<form method="post" enctype="multipart/form-data" {% if editing_visit %}id="visit-editor" data-autosave-url="{% url 'visit_autosave' patient.pk visit.pk %}"{% endif %}>
+{% csrf_token %}{{ form.non_field_errors }}
+{% for field in form %}
+  {% if field.is_hidden %}{{ field }}{{ field.errors }}
+  {% elif field.name == 'teeth' %}{% include 'clinical/teeth_picker.html' with field=field %}
+  {% elif field.field.widget.input_type == 'checkbox' %}<div class="checkbox-field">{{ field }}{{ field.label_tag }}{{ field.errors }}</div>
+  {% else %}<div class="field clinical-field"><label for="{{ field.id_for_label }}">{{ field.label }}{% if field.field.required %} *{% endif %}</label>{{ field }}{% if field.help_text %}<p class="hint">{{ field.help_text }}</p>{% endif %}{{ field.errors }}</div>{% endif %}
+{% endfor %}
+<div class="form-actions"><button type="submit" name="action" value="save">{% if creating_visit %}Start In Progress / Draft{% else %}Save{% endif %}</button>{% if editing_visit %}<button type="submit" name="action" value="complete">Complete Visit</button><button type="button" class="quiet" id="retry-save">Retry draft save</button>{% endif %}<a class="button quiet" href="{% if visit %}{% url 'visit_detail' patient.pk visit.pk %}{% else %}{% url 'patient_detail' patient.pk %}{% endif %}">Back to record</a></div>
+</form>
+{% if editing_visit %}<p class="hint">If your session expires, keep this tab open and sign in in another tab, then Retry draft save. Notes are never stored in browser localStorage. Failed or conflicting saves preserve your text in this tab; copy/reconcile it before closing or refreshing.</p><script src="{% static 'visit-draft.js' %}" defer></script>{% endif %}
+</section>
+{% endblock %}

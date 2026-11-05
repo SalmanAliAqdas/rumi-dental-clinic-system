@@ -16,5 +16,6 @@ class PrivacyMiddleware:
             add_never_cache_headers(response)
             response['Referrer-Policy'] = 'same-origin'
             response['X-Robots-Tag'] = 'noindex, nofollow, noarchive'
-            response['Content-Security-Policy'] = "default-src 'self'; style-src 'self'; script-src 'self'; img-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'"
+            if 'Content-Security-Policy' not in response:
+                response['Content-Security-Policy'] = "default-src 'self'; style-src 'self'; script-src 'self'; img-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'"
         return response

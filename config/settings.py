@@ -4,7 +4,7 @@ from pathlib import Path
 from django.core.management.utils import get_random_secret_key
 
 BASE_DIR = Path(__file__).resolve().parent.parent
-DATA_DIR = Path(os.environ.get('RUMI_DATA_DIR', Path(os.environ.get('LOCALAPPDATA', Path.home() / '.local/share')) / 'RumiDentalCare'))
+DATA_DIR = Path(os.environ.get('RUMI_DATA_DIR', BASE_DIR / 'runtime' / 'development')).resolve()
 DATA_DIR.mkdir(parents=True, exist_ok=True)
 key_file = DATA_DIR / 'secret.key'
 try:
@@ -46,3 +46,14 @@ LOGGING = {'version': 1, 'disable_existing_loggers': False,
            'handlers': {'safe': {'class': 'clinic.diagnostics.SafeDiagnosticHandler', 'level': 'WARNING'}},
            'loggers': {name: {'handlers': ['safe'], 'level': 'WARNING', 'propagate': False}
                        for name in ['django.server', 'django.request', 'django.security']}}
+LOGGING['handlers']['null'] = {'class': 'logging.NullHandler'}
+for decoder in ['pypdf', 'PIL']:
+    LOGGING['loggers'][decoder] = {'handlers': ['null'], 'propagate': False}
+RUMI_MAX_UPLOAD_BYTES = int(os.environ.get('RUMI_MAX_UPLOAD_BYTES', 10 * 1024 * 1024))
+RUMI_MAX_IMAGE_SIDE = int(os.environ.get('RUMI_MAX_IMAGE_SIDE', 10000))
+RUMI_MAX_IMAGE_PIXELS = int(os.environ.get('RUMI_MAX_IMAGE_PIXELS', 25000000))
+RUMI_MAX_PDF_PAGES = int(os.environ.get('RUMI_MAX_PDF_PAGES', 200))
+DATA_UPLOAD_MAX_MEMORY_SIZE = 2 * 1024 * 1024
+FILE_UPLOAD_MAX_MEMORY_SIZE = 1024 * 1024
+FILE_UPLOAD_TEMP_DIR = DATA_DIR / 'upload-tmp'
+FILE_UPLOAD_TEMP_DIR.mkdir(exist_ok=True)

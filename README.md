@@ -1,6 +1,6 @@
-# Rumi Dental Care — Phase 1
+# Rumi Dental Care — Phase 2 trial
 
-Private, offline-first patient management for one dental clinic and one dentist in Lahore. The main workflow is phone → matching patients → individual profile → edit demographics and medical alerts. No online deployment, paid services, CDN assets or internet calls are used during everyday operation.
+Private, offline-first patient management for one dental clinic and one dentist in Lahore. The workflow is phone → matching patients → individual profile → dated visit → clinical history, treatment stages and private attachments. No online deployment, paid services, CDN assets or internet calls are used during everyday operation.
 
 **Trial build: use fictional data only. Do not enter real patient information until backup/restore and the clinic trial requirements in Phases 5–6 have passed.** This is not the final clinic installation.
 
@@ -87,7 +87,7 @@ Create the Doctor using either the owner's **Accounts → Create Doctor login** 
 .\.venv\Scripts\python.exe manage.py create_doctor doctor
 ```
 
-The command asks for and validates a hidden password. It assigns only patient view/add/change permissions and never staff, superuser, audit-write, export or deletion permissions. Local management commands are trusted workstation maintenance: restrict Windows access to the clinic owner. They are not public web endpoints.
+The command asks for and validates a hidden password. It assigns the fixed Doctor role: patient and clinical-record permissions, never staff, superuser, audit-write, export or deletion permissions. Local management commands are trusted workstation maintenance: restrict Windows access to the clinic owner. They are not public web endpoints.
 
 Start the local trial:
 
@@ -101,7 +101,7 @@ You do not need to activate the virtual environment or change PowerShell executi
 
 ## Data and account maintenance
 
-**Both launchers select the existing ignored `runtime\development` directory**, containing `clinic.sqlite3` and `secret.key`. Never move only the database and leave its matching secret behind. Direct `manage.py` commands without an explicit `RUMI_DATA_DIR` still fall back to **`$env:LOCALAPPDATA\RumiDentalCare`**; that is a different directory and must not be used for this trial. Use `clinic-shell.cmd` to prevent that mismatch. Keep the secret private and retain it across restarts. Use a Windows account with a password, disk encryption where available, and private filesystem permissions; application roles do not protect against someone who can read the database file.
+**Both launchers select the existing ignored `runtime\development` directory**, containing `clinic.sqlite3` and `secret.key`. The default in `config.settings` now selects that same project-relative directory when `RUMI_DATA_DIR` is unset; it no longer falls back to AppData. Existing explicit overrides still work. Use `clinic-shell.cmd` for maintenance so the settings, Python and directory always match. Never move only the database and leave its matching secret and attachments behind. Keep the secret private and retain it across restarts. Use a Windows account with a password, disk encryption where available, and private filesystem permissions; application roles do not protect against someone who can read the database file.
 
 To choose another writable directory, set this before **every** management/start command, including migrations:
 
@@ -159,7 +159,7 @@ Optional browser check, with development-only Playwright installed (`.\.venv\Scr
 .\.venv\Scripts\python.exe scripts\browser_check.py
 ```
 
-It uses an isolated temporary database, random temporary password, loopback server and fictional data, then removes its database and stops the server. Screenshots go to ignored `runtime/`. It verifies both Owner and Doctor login, dashboard, patient search/edit and logout at desktop and narrow widths, checks account/audit permissions and blocks external asset requests. It does not use or change your existing account passwords. Playwright is not needed to run the clinic application. See `docs/PROGRESS.md` for checks actually executed.
+It uses an isolated temporary database, random temporary password, loopback server and fictional data, then removes its database and stops the server. Screenshots go to ignored `runtime/`. It verifies both Owner and Doctor login, dashboard, patient search/edit and logout at desktop and narrow widths. Doctor flows also cover visit notes, persisted autosave, stale revisions, expired-session recovery, teeth, procedure, image upload/thumbnail, completion, amendment and return visit/history. It checks account/audit permissions and blocks external asset requests. It does not use or change your existing account passwords. Playwright is not needed to run the clinic application. See `docs/PROGRESS.md` for checks actually executed.
 
 ## Structure
 
@@ -185,13 +185,15 @@ Every patient route checks authentication and the relevant Django permission on 
 
 Search uses same-origin POST, paginates at 20 results and requires four digits for partial phone queries (two characters for names/numbers). Canonical E.164 phone and WhatsApp columns have indexes for exact lookup. Substring searches can scan rows; realistic-volume performance must be evaluated during the clinic trial. Full phone matching searches both primary phone and WhatsApp. Numbers are not unique across patients. Patient numbers are immutable, unique opaque references; they are not an authorization mechanism.
 
-Patient responses have private/no-store cache controls, a same-origin referrer policy and restrictive same-origin CSP headers. Ordinary Django request/access logs are suppressed to avoid retaining URLs or patient terms. The audit database stores actor, patient reference, action and timestamp, never copies of clinical text. It records create/update and individual profile reads; it does not preserve previous field values or cover every possible database maintenance operation. It is **not tamper-proof**, and neither SQLite nor the secret file is encrypted by this application. There are no deletion, upload, clinical visit, finance, prescription, appointment, backup, restore or export features in Phase 1. Future tabs are clearly pending.
+Patient responses have private/no-store cache controls, a same-origin referrer policy and restrictive same-origin CSP headers. Ordinary Django request/access logs are suppressed to avoid retaining URLs or patient terms. The audit database stores actor, patient/object references, action and timestamp, never copies of clinical text. It records clinical changes, completion/amendments, medical updates, treatment-plan changes and attachment upload/access. Dated medical snapshots, plan revisions and completed-visit amendments retain their clinical context in clinical tables. Trusted direct database/ORM maintenance can bypass application restrictions: this is **not tamper-proof**. Neither SQLite, uploaded originals nor the secret file is encrypted by this application. Finance, prescriptions, appointments, complete backup/restore and export remain pending.
 
-## Git and private GitHub repository
+Safe local diagnostics are bounded to a 256 KiB file plus three rotated files at `runtime/development/diagnostics/events.log`. Only a generated event ID, time, fixed category/severity, allowlisted exception type and application source locations are recorded. No exception message, request fields, passwords, patient text, SQL or locals are formatted. Generic 500 responses provide an `X-Rumi-Error-ID` header without showing details. A logging failure never falls back to printing the unsafe event.
+
+## Git and source verification
 
 Runtime files, virtual environments, secrets, SQLite sidecars, uploads and backups are ignored. Inspect `git status` and staged file names before each commit. Never include actual patient information in fixtures, screenshots, issues or Git.
 
-No remote should be guessed. If one is not configured, sign into GitHub, choose **New repository**, name it **rumi-dental-care**, select **Private**, and leave README/.gitignore/license initialization unchecked. Then replace YOUR_USERNAME below with the exact account used:
+The configured source repository is `https://github.com/SalmanAliAqdas/rumi-dental-clinic-system.git`. Source upload does not deploy the application. Check repository visibility separately; runtime privacy must never depend on GitHub visibility.
 
 If Git reports **dubious ownership** because this repository was initialized under the restricted Codex Windows account, run this once from the project folder in your normal PowerShell. It trusts only this specific folder, not other repositories:
 
@@ -200,11 +202,39 @@ git config --global --add safe.directory (Get-Location).Path
 ```
 
 ```powershell
-git remote add origin https://github.com/YOUR_USERNAME/rumi-dental-care.git
-git branch -M main
-git push -u origin main
+git status
+git remote -v
+git log --oneline origin/main..main
+git push origin main
 ```
 
-Verify the repository is private before pushing. If you use GitHub CLI, an alternative from this folder is `gh repo create rumi-dental-care --private --source=. --remote=origin --push`. This creates a repository and uploads source; it does not deploy the clinic app.
+GitHub Actions runs the complete Django suite, system checks, migration consistency and dependency checks on pushes and pull requests, with isolated temporary runtime storage. CI contains no clinic database, secret or account credentials.
 
-Next: Phase 2 introduces visits, longitudinal medical history, dental chart, treatments and private attachments under each profile. See [requirements](docs/REQUIREMENTS.md), [roadmap](docs/ROADMAP.md) and [progress](docs/PROGRESS.md).
+## Try a returning patient (fictional data only)
+
+1. Double-click **Rumi Dental Care** on the Desktop. Keep the original server console open, visit **http://127.0.0.1:8000/** and sign in with your existing `owner` or `doctor` account. Passwords have not changed.
+2. Register a fictional patient, or find one by phone. `00442079` also matches an international phone beginning `+442079`; Pakistani alternate-format matching remains supported.
+3. Open **Medical History** and record reviewed medicines, allergies, history and alerts using **Not recorded**, **None confirmed** or **Details recorded**. Use **Start Visit**, confirm that you reviewed the displayed context, and enter complaint, findings and diagnosis.
+4. Select adult and/or primary FDI teeth; leave teeth empty and use area text for general work. Enter planned/performed treatment, advice, remaining work and follow-up. Watch **Saving / Saved / Failed**. Failed or conflicting saves retain the text in the current tab; do not close it until saved. No notes are stored in browser localStorage. After session expiry, sign in in another tab and retry.
+5. Record a procedure from the editable example catalogue. On **Treatment Plans**, create a staged plan and link performed work across visits. Examples have no prices and are not clinical recommendations.
+6. Upload a fictional JPEG, PNG or passive PDF under **Attachments**; optionally link its visit/teeth. Images have local thumbnails and authenticated previews; PDFs are download-only. Complete the visit after entering complaint and performed-treatment text. Its original notes are then retained; corrections use a dated amendment with a reason.
+7. Search that patient again, start another dated visit (same-day visits are allowed), and retrieve the previous history, chart, treatment stages and attachments. Use **Continue Visit** for unfinished work. Log out when finished.
+
+Medical snapshots and amendments are dated records, not a clinical decision system. Visit/medical/treatment timelines are paginated; the chart summarizes the latest 50 performed records and the complete history remains in Visits. Catalogue entries can be edited/deactivated; already recorded procedure labels are retained.
+
+## Phase 2 storage and upgrade
+
+The existing laptop database has migrations `0002` and `0003` applied. Do not reinitialize it. After stopping the known server, future upgrades should make and verify a safety copy before applying reviewed migrations:
+
+```powershell
+# Open clinic-shell.cmd first; stop the known server in its own console.
+.\.venv\Scripts\python.exe scripts\safety_copy.py
+.\.venv\Scripts\python.exe manage.py showmigrations --plan
+.\.venv\Scripts\python.exe manage.py migrate
+```
+
+The helper copies the consistent SQLite database with its matching secret to ignored `runtime/development/safety-copies/<UTC-id>/`, checks readability, foreign keys and all table rows, and writes a manifest. It assumes writes are stopped. It is **not** the Phase 5 encrypted, complete, off-device backup/restore system and does not copy uploads.
+
+Generated originals live at `runtime/development/attachments/originals/`; replaceable image thumbnails at `attachments/thumbnails/`; temporary upload files at `upload-tmp/`. Uploads are limited to 10 MiB, images to 10,000 pixels per side/25 million pixels, and passive PDFs to 200 pages with bounded structure checks. Extension and actual content must agree; active/encrypted/malformed PDFs and unsupported formats are rejected. All original, thumbnail and preview routes require authentication and permission; there is no public media route. Missing files produce a safe unavailable response while their metadata is retained. Upload failures clean up newly created files; power-loss orphan reconciliation and full restore testing remain future work. Future complete backups must capture the database **and every uploaded original together**, plus needed configuration and a verified manifest.
+
+Next is **Phase 3**, only after explicit authorization: charges, payments, installments and balances with the documented Doctor/Owner boundaries. No Phase 3 work or online deployment is included. See [requirements](docs/REQUIREMENTS.md), [roadmap](docs/ROADMAP.md) and [progress](docs/PROGRESS.md).

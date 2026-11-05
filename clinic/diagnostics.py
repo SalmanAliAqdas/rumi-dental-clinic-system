@@ -47,8 +47,13 @@ class SafeDiagnosticHandler(logging.Handler):
                 self.writer = RotatingFileHandler(directory / 'events.log', maxBytes=self.max_bytes,
                                                  backupCount=self.backup_count, encoding='utf-8')
                 self.writer.setFormatter(logging.Formatter('%(message)s'))
+                self.writer.handleError = lambda record: None
             safe_record = logging.LogRecord('safe', record.levelno, '', 0, json.dumps(payload), (), None)
-            self.writer.emit(safe_record)
+            try:
+                self.writer.emit(safe_record)
+            finally:
+                self.writer.close()
+                self.writer = None
         except Exception:
             # Logging failures must not fall back to printing the unsafe record.
             return

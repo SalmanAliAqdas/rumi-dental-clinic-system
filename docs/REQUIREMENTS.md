@@ -1,10 +1,10 @@
 # Confirmed requirements
 
-Private business software for Rumi Dental Care, Lahore, Pakistan: one branch, one dentist, no receptionist. Daily workflow: phone → matching patients → complete individual profile → today's visit → reliable retrieval years later. Windows offline operation comes first. Only Phase 1 is implemented; today's clinical visit entry starts in Phase 2. Online deployment is a separate future stage.
+Private business software for Rumi Dental Care, Lahore, Pakistan: one branch, one dentist, no receptionist. Daily workflow: phone → matching patients → complete individual profile → today's visit → reliable retrieval years later. Windows offline operation comes first. Phases 1–2 are implemented as a fictional-data trial. Online deployment is a separate future stage.
 
 ## Stack and local operation
 
-Django 5.2 LTS on supported Python, SQLite, Django templates, local CSS and minimal JavaScript (none currently required). Use Django authentication, password validation/hashing, permissions, sessions, CSRF, ORM and migrations. Pin dependency versions. Separate runtime data and settings from source. No external APIs, Neon, Vercel, Supabase, paid services, CDN scripts/styles or remote fonts. Network access is for initial dependency installation only.
+Django 5.2 LTS on supported Python, SQLite, Django templates, local CSS and minimal local JavaScript for revision-safe draft saving. Pillow validates images; pypdf validates passive PDFs. Use Django authentication, password validation/hashing, permissions, sessions, CSRF, ORM and migrations. Pin dependency versions. Separate runtime data and settings from source. No external APIs, Neon, Vercel, Supabase, paid services, CDN scripts/styles or remote fonts. Network access is for initial dependency installation only.
 
 ## Exact role contract
 
@@ -25,7 +25,7 @@ Doctor:
 - Must **NOT** see combined historical financial totals or weekly, monthly or annual income reports.
 - Must **NOT** have bulk financial export or backup/restore access.
 
-Never hide old financial records from the Doctor inside an individual patient's profile. Server authorization must enforce these rules on every future endpoint, query, report and export. Current owner accounts are superusers; Doctors receive only patient add/view/change permissions. Owners can create and disable/enable Doctors and reset passwords from the local console. Permission management in Phase 1 is assignment of the fixed Doctor role; finance, arbitrary custom-role UI, backup and export are pending. No general Django admin route is exposed. Trusted local maintenance commands operate under Windows filesystem privileges.
+Never hide old financial records from the Doctor inside an individual patient's profile. Server authorization must enforce these rules on every future endpoint, query, report and export. Current owner accounts are superusers; Doctors receive fixed patient and clinical-record view/add/change permissions as appropriate. No audit write, hard deletion, account administration or export permissions are granted to Doctor. Owners can create and disable/enable Doctors and reset passwords from the local console. Finance, arbitrary custom-role UI, backup and export are pending. No general Django admin route is exposed. Trusted local maintenance commands operate under Windows filesystem privileges.
 
 ## Patient record
 
@@ -39,11 +39,40 @@ Families can share numbers. Display selection rows with name, permanent number a
 
 ## Interface and scope
 
-Charcoal, blue and light-green accents; accessible light text, clear focus and large controls; local system fonts, responsive layout, text identity only. No invented logo, statistics, clinical workflows or money. Dashboard phone search, registration and actual patient count. Right panel reserves appointments and tasks with honest Phase 4 placeholders. Owner account management and pending financial/backup areas. Profile has demographics, prominent medical alerts, edit action and visible future Overview/Visits/Treatments/X-rays/Prescriptions/Payments navigation; only Overview works now. Print foundation uses white backgrounds.
+Charcoal, blue and light-green accents; accessible light text, clear focus and large controls; local system fonts, responsive layout, text identity only. No invented logo, statistics or money. Dashboard phone search, registration and actual patient count. Right panel reserves appointments and tasks with honest Phase 4 placeholders. Owner account management and pending financial/backup areas. Profile has demographics, prominent medical alerts and functional Overview, Visits, Medical History, Dental Chart, Treatment Plans and Attachments sections. Prescriptions (Phase 4) and Payments (Phase 3) remain visibly pending. Print foundation uses white backgrounds.
 
 ## Security and audit
 
-No public signup. Hidden-password owner setup and restricted Doctor creation. Every patient endpoint is authenticated and permission checked. CSRF protects mutations and POST search; POST logout; 30-minute idle sessions and close-browser expiry. Persistent 15-minute login throttles. Private no-store responses, same-origin referrer policy and same-origin assets. Record patient create/update and individual profile access with actor, reference and time. Doctor cannot access or modify audits. Owner has read-only audit UI. This audit is not tamper-proof, immutable storage or field-version history. Application logs suppress request paths. Avoid actual patient data in Git and test artifacts.
+No public signup. Hidden-password owner setup and restricted Doctor creation. Every patient/clinical/attachment endpoint is authenticated and permission checked. CSRF protects mutations and POST search; POST logout; 30-minute idle sessions and close-browser expiry. Persistent 15-minute login throttles. Private no-store responses, same-origin referrer policy and same-origin assets. Audit patient/clinical changes, completion/amendments, medical reviews, treatment-plan changes and attachment upload/access using actor, object IDs and time, without clinical text. Doctor cannot access or modify audits. Owner has read-only audit UI. This audit is not tamper-proof; trusted filesystem/ORM maintenance can bypass application protections. Application logs suppress request paths. Bounded allowlisted diagnostics contain IDs, time, exception type and source locations, without raw errors, request contents or frame locals. Avoid actual patient data in Git and test artifacts.
+
+## Implemented Phase 2 clinical contract
+
+Visits have a date/time, clinician, complaint, examination, diagnosis, adult/primary FDI teeth or general area, planned/performed treatment, advice, remaining work and follow-up. Multiple same-day visits are valid. Draft/in-progress revisions use conditional updates; stale requests return conflict without overwriting current data. The interface retains unsaved text in the current tab, shows Saving/Saved/Failed, and supports reauthentication in another tab. There is no localStorage of patient notes. Closing an unsaved tab or browser crash can lose pending edits. Completed notes cannot be routinely edited; dated reasoned amendments retain the originals.
+
+Medical history, medicines, allergies and alerts each distinguish Not recorded, None confirmed and Details recorded. A dated review is captured for every new visit, preserving context after subsequent medical updates. Direct profile medical edits also create historical reviews. Clinical fields are escaped in HTML. Tooth identifiers use all 32 permanent and 20 primary FDI codes, support multiple teeth and general areas, and reject invalid/duplicate IDs. The chart is a text-labelled selection/history aid, not an automated diagnosis or image interpretation tool.
+
+The editable procedure catalogue has six clearly labelled examples and no prices. Plans contain staged items with dates, notes and teeth/areas; immutable snapshots retain plan changes. Performed procedures link to a patient/visit and optional same-patient plan item. Recorded procedure labels survive catalogue renaming. Work may span multiple visits. There are no clinical deletion endpoints. Date/actor-linked observations and attachments are retained as historical records.
+
+Uploads accept actual JPEG, PNG and passive PDF only, with matching extension, content parsing and resource bounds. Originals are preserved under generated names; images receive separate stripped-metadata thumbnails. PDFs with actions, forms, embedded files or encryption are rejected and accepted PDFs are download-only. Original images may contain sensitive metadata and must remain private. Every upload/download/preview/thumbnail route checks permissions and patient ownership; no public MEDIA route exists. Categories, dates, descriptions, teeth/area and optional visit linkage are supported. Missing files keep metadata and report unavailability. Failed upload writes roll back metadata and remove newly created files; abrupt power-loss recovery is not yet implemented.
+
+## Phase 2 schema and storage
+
+Existing Patient and authentication records are retained. Additive migrations `0002` and `0003` create clinical tables, add audit object IDs and seed fixed clinical permissions/examples. Foreign keys protect referenced clinical records from routine deletion.
+
+| Model | Relationships and purpose |
+| --- | --- |
+| MedicalReview | Patient + reviewer/time; immutable JSON medical snapshot and reason |
+| Visit | Patient + clinician + MedicalReview + creator/updater; notes, status, revision |
+| VisitAmendment | Visit + author/time; retained correction and reason |
+| Procedure | Editable active/example catalogue; no financial fields |
+| TreatmentPlan / PlanItem | Patient plan with revision; items reference Procedure and stages |
+| PlanRevision | Plan + author/time; immutable complete plan snapshot |
+| PerformedWork | Patient + Visit + Procedure; optional PlanItem; retained procedure label |
+| ToothObservation | Patient + optional Visit + author/time; teeth/area and observation |
+| Attachment | Patient + optional Visit + uploader/time; file metadata and generated storage IDs |
+| AuditEvent | Actor + patient + object type/ID + action/time; no clinical text |
+
+Default and launcher runtime selection is `<project>/runtime/development`, overridable explicitly with `RUMI_DATA_DIR`. Database: `clinic.sqlite3`; matching secret: `secret.key`; originals: `attachments/originals`; derived thumbnails: `attachments/thumbnails`; temporary uploads: `upload-tmp`; diagnostics: `diagnostics/events.log` (256 KiB + three rotations). All are ignored by Git. Do not move/copy the database without originals and required configuration. Pre-migration database/secret safety copies are not complete clinical backups. The definitive backup contract below remains Phase 5.
 
 ## Phase 5 backup contract (not implemented)
 

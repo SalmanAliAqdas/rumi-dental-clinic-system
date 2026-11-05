@@ -36,7 +36,8 @@ def trial_ready(request):
 
 def doctor_group():
     group, _ = Group.objects.get_or_create(name='Doctor')
-    group.permissions.set(Permission.objects.filter(content_type__app_label='clinic', codename__in=['view_patient', 'add_patient', 'change_patient']))
+    from .clinical_permissions import DOCTOR_PERMISSIONS
+    group.permissions.set(Permission.objects.filter(content_type__app_label='clinic', codename__in=DOCTOR_PERMISSIONS))
     return group
 
 class ClinicLoginView(LoginView):
@@ -109,6 +110,8 @@ def patient_create(request):
             patient.created_by = patient.updated_by = request.user
             patient.save()
             AuditEvent.objects.create(actor=request.user, patient=patient, action='create')
+            from .clinical_services import ensure_medical_review
+            ensure_medical_review(patient, request.user, 'Initial registered medical status')
         messages.success(request, 'Patient registered.')
         return redirect('patient_detail', pk=patient.pk)
     return render(request, 'patient_form.html', {'form': form, 'creating': True})
@@ -118,7 +121,7 @@ def patient_create(request):
 def patient_detail(request, pk):
     patient = get_object_or_404(Patient, pk=pk)
     AuditEvent.objects.create(actor=request.user, patient=patient, action='view')
-    return render(request, 'patient_detail.html', {'patient': patient})
+    return render(request, 'patient_detail.html', {'patient': patient, 'unfinished': patient.visits.exclude(status='completed')[:5]})
 
 @clinic_required('change_patient')
 @require_http_methods(['GET', 'POST'])
@@ -127,10 +130,16 @@ def patient_edit(request, pk):
     form = PatientForm(request.POST or None, instance=patient)
     if request.method == 'POST' and form.is_valid():
         with transaction.atomic():
+            from .clinical_services import ensure_medical_review
+            medical_changed = any(field in form.changed_data for field in ['medical_history', 'current_medicines', 'allergies', 'medical_alerts'])
+            if medical_changed:
+                ensure_medical_review(Patient.objects.get(pk=pk), request.user, 'Medical status before demographic-form edit')
             patient = form.save(commit=False)
             patient.updated_by = request.user
             patient.save()
             AuditEvent.objects.create(actor=request.user, patient=patient, action='update')
+            if medical_changed:
+                ensure_medical_review(patient, request.user, 'Medical status changed through patient details')
         messages.success(request, 'Patient details updated.')
         return redirect('patient_detail', pk=patient.pk)
     return render(request, 'patient_form.html', {'form': form, 'patient': patient})

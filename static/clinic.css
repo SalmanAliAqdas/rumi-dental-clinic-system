@@ -512,3 +512,28 @@ form ul:not(.errorlist) {
     color:#333;
   }
 }
+/* Phase 2 clinical records, with local assets and text equivalents. */
+.clinical-alerts { border-left: 4px solid var(--green); background: #20332c; padding: 16px 20px; margin-bottom: 24px; border-radius: 8px; overflow-wrap: anywhere; }
+.clinical-field { margin-bottom: 22px; }
+.clinical-field select { width: 100%; background: #121a26; color: var(--text); padding: 12px; border: 1px solid #53617a; border-radius: 8px; min-height: 46px; font: inherit; }
+.clinical-field select:focus-visible { outline: 3px solid var(--green); outline-offset: 3px; }
+.clinical-notes dt, .medical-snapshot dt { color: var(--blue); font-weight: 650; margin-top: 18px; }
+.clinical-notes dd, .medical-snapshot dd { margin: 4px 0 18px; white-space: pre-wrap; overflow-wrap: anywhere; }
+.tooth-picker { border: 1px solid var(--border); border-radius: 10px; padding: 18px; margin: 20px 0; min-width: 0; }
+.tooth-picker legend { font-weight: 650; }
+.chart-orientation { display: flex; justify-content: space-between; color: var(--green); font-size: 13px; margin: 14px 0; }
+.tooth-row { display: grid; gap: 4px; margin: 8px 0; }
+.tooth-row.adult { grid-template-columns: repeat(16, minmax(0, 1fr)); }
+.tooth-row.primary { grid-template-columns: repeat(10, minmax(0, 1fr)); }
+.tooth { border: 1px solid var(--border); border-radius: 7px; background: #121a26; display: flex; flex-direction: column; align-items: center; padding: 8px 1px; min-height: 58px; cursor: pointer; }
+.tooth input { width: 17px; height: 17px; accent-color: var(--green); }
+.tooth:has(input:checked) { border: 2px solid var(--green); background: #244432; }
+.tooth-static { display: block; padding: 12px 1px; text-align: center; border: 1px solid var(--border); border-radius: 6px; background: #121a26; }
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+.attachment-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(280px, 100%), 1fr)); gap: 20px; }
+.attachment-thumb { display: block; width: 100%; max-height: 280px; object-fit: contain; margin: 16px 0; background: #11151c; border-radius: 8px; }
+.history-entry { border-top: 1px solid var(--border); padding: 18px 0; margin-top: 18px; }
+#save-state { padding: 12px; border: 1px solid var(--border); border-radius: 8px; color: var(--green); }
+.form-actions { flex-wrap: wrap; }
+@media (max-width: 740px) { .tooth-row.adult { grid-template-columns: repeat(8, minmax(0, 1fr)); } .tooth-row.primary { grid-template-columns: repeat(5, minmax(0, 1fr)); } .tooth-picker { padding: 12px; } .tooth { min-height: 58px; } .clinical-alerts { font-size: 14px; } }
+@media print { .clinical-alerts, .tooth, .tooth-static { background: white; color: black; } .clinical-notes dt, .medical-snapshot dt { color: black; } }
