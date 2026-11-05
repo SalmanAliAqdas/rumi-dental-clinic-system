@@ -16,6 +16,24 @@ from .forms import DoctorCreationForm, PatientForm
 from .models import AuditEvent, LoginAttempt, Patient
 from .phones import normalize_phone, partial_phone
 
+@require_GET
+def trial_ready(request):
+    """Loopback-only readiness proof; no account, patient or filesystem data."""
+    from django.conf import settings
+    from django.http import JsonResponse, HttpResponseNotFound
+    from django.db import connection
+    from django.db.migrations.executor import MigrationExecutor
+    from .trial_identity import APPLICATION, CHALLENGE_HEADER, identity_proof, valid_challenge
+    challenge = request.headers.get(CHALLENGE_HEADER, '')
+    if request.META.get('REMOTE_ADDR') not in ['127.0.0.1', '::1'] or not valid_challenge(challenge):
+        return HttpResponseNotFound()
+    executor = MigrationExecutor(connection)
+    if executor.migration_plan(executor.loader.graph.leaf_nodes()):
+        return JsonResponse({'ready': False}, status=503)
+    return JsonResponse({'application': APPLICATION, 'proof': identity_proof(
+        settings.SECRET_KEY, challenge, settings.BASE_DIR, connection.settings_dict['NAME'],
+    )})
+
 def doctor_group():
     group, _ = Group.objects.get_or_create(name='Doctor')
     group.permissions.set(Permission.objects.filter(content_type__app_label='clinic', codename__in=['view_patient', 'add_patient', 'change_patient']))

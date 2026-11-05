@@ -3,6 +3,7 @@ from django.contrib.auth.views import LogoutView
 from clinic import views
 
 urlpatterns = [
+    path('_local/trial-ready/', views.trial_ready, name='trial_ready'),
     path('', views.dashboard, name='dashboard'),
     path('login/', views.ClinicLoginView.as_view(), name='login'),
     path('logout/', LogoutView.as_view(), name='logout'),

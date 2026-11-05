@@ -6,14 +6,35 @@ Private, offline-first patient management for one dental clinic and one dentist 
 
 ## Windows setup
 
+### Double-click startup (existing Phase 1 trial)
+
+Double-click **`Start Rumi Dental Care.cmd`** in the project folder. It uses the Python and data directory relative to that file, even when invoked from another folder or a path containing spaces. No activation, administrator rights, global environment changes or internet connection are required.
+
+It checks the existing virtual-environment Python, nonempty `runtime\development\clinic.sqlite3`, matching secret and required migrations without applying changes. It never installs packages, initializes a database, creates accounts or resets passwords. A failed check displays instructions and keeps the error window open until you press a key.
+
+The browser opens at **http://127.0.0.1:8000/** only after a bounded readiness check verifies a signed response for this checkout, Python and database. If the same verified server already runs, it is reused. An unknown service, another checkout/data directory or an older server without readiness support produces a conflict message; nothing is killed and no alternative port is chosen. Stop an identified old Rumi server from its own console before retrying.
+
+**Keep the server console open while using the application. Press Ctrl+C there to stop. Closing only the browser does not stop the server.** When reusing a server, keep its original console open. This is a **Phase 1 trial launcher**; final operational installation/service packaging remains Phase 6.
+
+### Account-management shell
+
+Double-click **`clinic-shell.cmd`**. It opens PowerShell in this project with `DJANGO_SETTINGS_MODULE=config.settings` and `RUMI_DATA_DIR` set to this project's `runtime\development`. Its preflight uses the same non-mutating checks. Use the project's Python directly:
+
+```powershell
+.\.venv\Scripts\python.exe manage.py shell -c "from django.contrib.auth import get_user_model; print(list(get_user_model().objects.values('username','is_superuser','is_active')))"
+.\.venv\Scripts\python.exe manage.py showmigrations --plan
+```
+
+Existing logins are `owner` and `doctor`; use your existing passwords. If the owner actually needs a password reset, run `manage.py changepassword owner` or `manage.py changepassword doctor` with the same `.venv` Python in this shell, entering the password only at the local hidden prompts. Closing the clinic shell does not stop a server running in another window.
+
 ### Resume this checkout's existing trial
 
 The Phase 1 handoff used **`runtime\development`**, not the default AppData directory. The existing `owner` and `doctor` accounts are in that trial database. Reuse the virtual environment and select the same directory in every new PowerShell window:
 
 ```powershell
 $env:RUMI_DATA_DIR = Join-Path (Get-Location) 'runtime\development'
+$env:DJANGO_SETTINGS_MODULE = 'config.settings'
 .\.venv\Scripts\python.exe manage.py showmigrations --plan
-.\.venv\Scripts\python.exe manage.py migrate
 .\.venv\Scripts\python.exe manage.py runserver 127.0.0.1:8000 --insecure --noreload
 ```
 
@@ -30,6 +51,8 @@ Open PowerShell in this project folder:
 ```powershell
 py -3.13 -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -r requirements.txt
+$env:DJANGO_SETTINGS_MODULE = 'config.settings'
+$env:RUMI_DATA_DIR = Join-Path (Get-Location) 'runtime\development'
 .\.venv\Scripts\python.exe manage.py migrate
 .\.venv\Scripts\python.exe manage.py createsuperuser --username owner
 ```
@@ -56,7 +79,7 @@ You do not need to activate the virtual environment or change PowerShell executi
 
 ## Data and account maintenance
 
-Default data directory: **`$env:LOCALAPPDATA\RumiDentalCare`**, normally `C:\Users\<Windows user>\AppData\Local\RumiDentalCare`. It is separate from application source and contains `clinic.sqlite3` and a randomly generated persistent `secret.key`. Django creates these on first use. Keep the secret private and retain it across restarts. Use a Windows account with a password, disk encryption where available, and private filesystem permissions; application roles do not protect against someone who can read the database file.
+**Both launchers select the existing ignored `runtime\development` directory**, containing `clinic.sqlite3` and `secret.key`. Never move only the database and leave its matching secret behind. Direct `manage.py` commands without an explicit `RUMI_DATA_DIR` still fall back to **`$env:LOCALAPPDATA\RumiDentalCare`**; that is a different directory and must not be used for this trial. Use `clinic-shell.cmd` to prevent that mismatch. Keep the secret private and retain it across restarts. Use a Windows account with a password, disk encryption where available, and private filesystem permissions; application roles do not protect against someone who can read the database file.
 
 To choose another writable directory, set this before **every** management/start command, including migrations:
 
@@ -94,6 +117,20 @@ Resetting a password invalidates existing sessions. Owner credentials use the sa
 
 Tests use an isolated in-memory database; they do not register patients in your normal database. `check --deploy` is an additional future-hosting diagnostic; HTTPS/HSTS/secure-cookie warnings are expected for this deliberately loopback-only HTTP trial and must be resolved before any online stage.
 
+Launcher preflight without starting a server or browser:
+
+```powershell
+& '.\Start Rumi Dental Care.cmd' --check
+```
+
+Windows integration verification (stop your known trial server in its own console first to free port 8000):
+
+```powershell
+.\.venv\Scripts\python.exe scripts\check_windows_launchers.py
+```
+
+This opt-in check creates and migrates only a temporary fictional fixture under ignored `runtime/`, with a path containing spaces and a junction to the existing `.venv`. It tests the real CMD/PowerShell launchers from another directory, missing prerequisites, pending migrations, readiness, verified reuse, other-checkout rejection and an unrelated occupied port. It cleans up only its own test server/process tree and fixture; it never stops an arbitrary listener. It verifies that the actual clinic database/secret and the unintended AppData database/secret remain byte-for-byte unchanged. No browser is opened by this integration check.
+
 Optional browser check, with development-only Playwright installed (`.\.venv\Scripts\python.exe -m pip install playwright==1.64.1`, then `.\.venv\Scripts\python.exe -m playwright install chromium`), run from a Python environment containing Playwright:
 
 ```powershell
@@ -113,6 +150,7 @@ clinic/              Patient model, forms, phone normalization, views, access
 templates/           Offline Django interface
 static/clinic.css    Local responsive dark theme and white print foundation
 scripts/             Optional isolated browser smoke check
+                     Trial launcher helper and Windows integration checks
 docs/                Requirements, six-phase roadmap and verification record
 runtime/             Ignored development/test artifacts only
 ```
