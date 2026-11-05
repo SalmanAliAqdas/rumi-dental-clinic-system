@@ -116,6 +116,12 @@ Runtime files, virtual environments, secrets, SQLite sidecars, uploads and backu
 
 No remote should be guessed. If one is not configured, sign into GitHub, choose **New repository**, name it **rumi-dental-care**, select **Private**, and leave README/.gitignore/license initialization unchecked. Then replace YOUR_USERNAME below with the exact account used:
 
+If Git reports **dubious ownership** because this repository was initialized under the restricted Codex Windows account, run this once from the project folder in your normal PowerShell. It trusts only this specific folder, not other repositories:
+
+```powershell
+git config --global --add safe.directory (Get-Location).Path
+```
+
 ```powershell
 git remote add origin https://github.com/YOUR_USERNAME/rumi-dental-care.git
 git branch -M main

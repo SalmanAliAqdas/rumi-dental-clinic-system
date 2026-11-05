@@ -37,6 +37,8 @@ The first dependency download was blocked by sandbox networking; an approved net
 
 Source and documentation are the only intended committed artifacts. `.gitignore` excludes runtime data, SQLite files/sidecars, secret files, environment files, uploads, backups, virtual environments and browser screenshots. Staged paths and contents are reviewed before the delivery commit. There is no Git remote, so no push or deployment is performed. README contains exact private `rumi-dental-care` repository creation/connection/push instructions. The resulting commit hash can be obtained with `git log -1 --oneline`.
 
+The verified source was committed on `main` as `3ca2a87`. Final housekeeping also excludes Chromium diagnostic `.log` artifacts and documents Git's Windows sandbox ownership warning. Git writes required the normal Windows executor with an exact-repository, command-scoped trust exception; global Git trust settings were not changed. No diagnostic logs were committed.
+
 ## Limitations and blockers
 
 No Phase 1 implementation blocker remains. Real clinic operation is not approved: backup/restore, reliable Windows installation and a fictional-data clinic trial remain outstanding. Tests do not establish clinical readiness, protection from a compromised Windows account, database encryption, tamper-proof auditing, or representative-volume performance. Do not enter real patient data yet.
