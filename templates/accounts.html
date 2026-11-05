@@ -1,0 +1,38 @@
+{% extends 'base.html' %}
+{% block title %}Accounts · Rumi Dental Care{% endblock %}
+{% block content %}
+<div class="page-heading">
+<div>
+<p class="eyebrow">OWNER WORKSPACE</p>
+<h1>Account management</h1>
+</div>
+</div>
+<div class="workspace">
+<section class="panel">
+<h2>Create a Doctor login</h2>
+<p class="muted">Doctor accounts can register, search, view and update patients. They cannot manage accounts or access backup, export or combined historical financial reports.</p>
+<form method="post">
+{% csrf_token %}{{ form.as_p }}<button type="submit">Create Doctor account</button>
+</form>
+</section>
+<aside class="panel">
+<h2>Clinic accounts</h2>
+{% for account in accounts %}
+<p>
+<strong>{{ account.username }}</strong> · {% if account.is_superuser %}Owner{% else %}Doctor / assigned permissions{% endif %}
+{% if not account.is_active %} · Disabled{% endif %}
+</p>
+{% if not account.is_superuser and not account.is_staff %}
+<form method="post">
+{% csrf_token %}
+<input type="hidden" name="account_id" value="{{ account.pk }}">
+<button class="quiet" name="action" value="{% if account.is_active %}disable{% else %}enable{% endif %}">
+{% if account.is_active %}Disable{% else %}Enable{% endif %} {{ account.username }}</button>
+</form>
+{% endif %}
+{% endfor %}
+<a href="{% url 'audit' %}">View patient audit trail →</a>
+<p class="hint">Reset passwords with the documented owner command. General Django admin is not exposed.</p>
+</aside>
+</div>
+{% endblock %}

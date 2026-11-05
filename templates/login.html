@@ -1,0 +1,18 @@
+{% extends 'base.html' %}
+{% block title %}Sign in · Rumi Dental Care{% endblock %}
+{% block content %}
+<div class="login-wrap">
+<section class="panel login-panel">
+<p class="eyebrow">PRIVATE CLINIC WORKSPACE</p>
+<h1>Welcome back</h1>
+<p class="muted">Sign in to access your clinic records.</p>
+{% if locked %}
+<div class="errors" role="alert">Too many unsuccessful attempts. Try again after 15 minutes from the first attempt.</div>
+{% endif %}
+<form method="post">
+{% csrf_token %}{{ form.as_p }}<button type="submit">Sign in</button>
+</form>
+<p class="muted small">Accounts are created by the clinic owner. There is no public registration.</p>
+</section>
+</div>
+{% endblock %}

@@ -1,0 +1,27 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="page-heading">
+<div>
+<p class="eyebrow">OWNER WORKSPACE</p>
+<h1>Patient audit trail</h1>
+<p class="muted">Access and change events. This database audit is not tamper-proof against someone with filesystem access.</p>
+</div>
+</div>
+<section class="panel">
+{% for event in page %}
+<p>{{ event.occurred_at|date:'d M Y, H:i:s' }} · {{ event.actor.username }} · {{ event.get_action_display }} · <a href="{% url 'patient_detail' event.patient_id %}">{{ event.patient.number }}</a>
+</p>
+{% empty %}
+<p>No audit events recorded.</p>
+{% endfor %}
+<div class="pagination">
+{% if page.has_previous %}
+<a href="?page={{ page.previous_page_number }}">Previous</a>
+{% endif %}
+<span>Page {{ page.number }} of {{ page.paginator.num_pages }}</span>
+{% if page.has_next %}
+<a href="?page={{ page.next_page_number }}">Next</a>
+{% endif %}
+</div>
+</section>
+{% endblock %}

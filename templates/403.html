@@ -1,0 +1,8 @@
+{% extends 'base.html' %}
+{% block content %}
+<section class="panel">
+<h1>Access restricted</h1>
+<p>Your account does not have permission for this action.</p>
+<a href="{% url 'dashboard' %}">Return to dashboard</a>
+</section>
+{% endblock %}

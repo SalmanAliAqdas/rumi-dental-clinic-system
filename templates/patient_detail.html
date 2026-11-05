@@ -1,0 +1,85 @@
+{% extends 'base.html' %}
+{% block title %}{{ patient.number }} · Rumi Dental Care{% endblock %}
+{% block content %}
+<div class="page-heading">
+<div>
+<p class="eyebrow">{{ patient.number }}</p>
+<h1>{{ patient.full_name }}</h1>
+<p class="muted">{{ patient.age_display }} · {{ patient.phone }}</p>
+</div>
+<a class="button" href="{% url 'patient_edit' patient.pk %}">Edit patient</a>
+</div>
+<section class="panel">
+{% include 'partials/search_form.html' %}
+</section>
+<div class="profile-nav" aria-label="Patient sections">
+<span class="selected">Overview</span>
+<span>Visits · Phase 2</span>
+<span>Treatments · Phase 2</span>
+<span>X-rays · Phase 2</span>
+<span>Prescriptions · Phase 4</span>
+<span>Payments · Phase 3</span>
+</div>
+<div class="workspace">
+<div>
+<section class="panel alerts">
+<p class="eyebrow">CHECK BEFORE TREATMENT</p>
+<h2>Allergies &amp; medical alerts</h2>
+<h3>Allergies</h3>
+<p class="preserve">{{ patient.allergies|default:'Not recorded — confirm with patient' }}</p>
+<h3>Important medical alerts</h3>
+<p class="preserve">{{ patient.medical_alerts|default:'Not recorded — confirm with patient' }}</p>
+</section>
+<section class="panel">
+<h2>Patient details</h2>
+<dl class="details">
+<div>
+<dt>Primary phone</dt>
+<dd>{{ patient.phone }}</dd>
+</div>
+<div>
+<dt>WhatsApp</dt>
+<dd>{{ patient.whatsapp|default:'Not recorded' }}</dd>
+</div>
+<div>
+<dt>Age / date of birth</dt>
+<dd>{{ patient.age_display }}</dd>
+</div>
+<div>
+<dt>Occupation</dt>
+<dd>{{ patient.occupation|default:'Not recorded' }}</dd>
+</div>
+<div>
+<dt>Address</dt>
+<dd class="preserve">{{ patient.address|default:'Not recorded' }}</dd>
+</div>
+<div>
+<dt>Emergency contact</dt>
+<dd>{{ patient.emergency_contact|default:'Not recorded' }}</dd>
+</div>
+</dl>
+</section>
+<section class="panel">
+<h2>Medical background</h2>
+<h3>Medical history</h3>
+<p class="preserve">{{ patient.medical_history|default:'Not recorded' }}</p>
+<h3>Current medicines</h3>
+<p class="preserve">{{ patient.current_medicines|default:'Not recorded' }}</p>
+</section>
+</div>
+<aside>
+<section class="panel">
+<h2>Record information</h2>
+<p class="muted">Created {{ patient.created_at|date:'d M Y, H:i' }} by {{ patient.created_by.username }}</p>
+<p class="muted">Updated {{ patient.updated_at|date:'d M Y, H:i' }} by {{ patient.updated_by.username }}</p>
+<p class="hint">Profile access is recorded in the protected audit trail.</p>
+</section>
+<section class="panel">
+<span class="badge">COMING NEXT</span>
+<h2>One complete record</h2>
+<p class="muted">Visits, treatments, X-rays, prescriptions and individual payment history will remain under this profile. These sections are not implemented yet.</p>
+</section>
+<a class="text-link" href="{% url 'patients' %}">← Find another patient</a>
+</aside>
+</div>
+{% endblock %}

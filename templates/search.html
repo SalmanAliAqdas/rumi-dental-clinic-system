@@ -1,0 +1,46 @@
+{% extends 'base.html' %}
+{% block title %}Find a patient · Rumi Dental Care{% endblock %}
+{% block content %}
+<div class="page-heading">
+<div>
+<p class="eyebrow">PATIENT DIRECTORY</p>
+<h1>Find a patient</h1>
+</div>
+<a class="button" href="{% url 'patient_create' %}">+ Register patient</a>
+</div>
+<section class="panel">
+{% include 'partials/search_form.html' %}
+{% if search_error %}
+<p class="errors" role="alert">{{ search_error }}</p>
+{% elif query %}
+<h2>{{ page.paginator.count }} match{{ page.paginator.count|pluralize }}</h2>
+{% if page %}
+{% include 'partials/patient_rows.html' with patients=page.object_list %}
+{% if page.has_other_pages %}
+<form method="post" class="pagination">
+{% csrf_token %}
+<input type="hidden" name="query" value="{{ query }}">
+{% if page.has_previous %}
+<button name="page" value="{{ page.previous_page_number }}">Previous</button>
+{% endif %}
+<span>Page {{ page.number }} of {{ page.paginator.num_pages }}</span>
+{% if page.has_next %}
+<button name="page" value="{{ page.next_page_number }}">Next</button>
+{% endif %}
+</form>
+{% endif %}
+{% else %}
+<div class="empty-state">
+<h2>No matching patients</h2>
+<p class="muted">Check the number or register a new patient.</p>
+<a class="button" href="{% url 'patient_create' %}">Register new patient</a>
+</div>
+{% endif %}
+{% else %}
+<div class="empty-state">
+<h2>A patient's record is a search away</h2>
+<p class="muted">Enter a phone number, name or permanent patient number above.</p>
+</div>
+{% endif %}
+</section>
+{% endblock %}

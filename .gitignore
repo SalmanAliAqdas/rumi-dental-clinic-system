@@ -1,0 +1,15 @@
+.venv/
+__pycache__/
+*.py[cod]
+.env*
+!.env.example
+*.sqlite3*
+*.db
+runtime/
+uploads/
+backups/
+staticfiles/
+secret.key
+.coverage
+test-results/
+node_modules/

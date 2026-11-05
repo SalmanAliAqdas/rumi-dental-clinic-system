@@ -1,0 +1,52 @@
+{% extends 'base.html' %}
+{% block title %}
+{% if creating %}Register patient{% else %}Edit patient{% endif %} · Rumi Dental Care{% endblock %}
+{% block content %}
+<div class="page-heading">
+<div>
+<p class="eyebrow">PATIENT RECORD</p>
+<h1>
+{% if creating %}Register a patient{% else %}Edit {{ patient.full_name }}{% endif %}
+</h1>
+<p class="muted">Start with a name and phone number. Add other details when available.</p>
+</div>
+<a class="text-link" href="{% url 'patients' %}">Find a patient →</a>
+</div>
+<section class="panel">
+<form method="post" class="patient-form">
+{% csrf_token %}{{ form.non_field_errors }}{% if form.duplicates %}
+<div class="duplicate-warning">
+<h2>Patients using this phone</h2>
+{% include 'partials/patient_rows.html' with patients=form.duplicates|slice:':10' %}
+<p>Family members can share a number. Confirm below to continue.</p>
+</div>
+{% endif %}
+<div class="form-grid">
+{% for field in form %}
+{% if field.name != 'confirm_shared_phone' %}
+<div class="field {% if field.field.widget.input_type != 'text' and field.field.widget.input_type != 'number' and field.field.widget.input_type != 'date' %}wide{% endif %}">
+<label for="{{ field.id_for_label }}">{{ field.label }}{% if field.field.required %} <span class="required">*</span>
+{% endif %}
+</label>{{ field }}{% if field.help_text %}
+<p class="hint">{{ field.help_text }}</p>
+{% endif %}{{ field.errors }}</div>
+{% endif %}
+{% endfor %}
+</div>
+{% if form.duplicates %}
+<div class="checkbox-field">{{ form.confirm_shared_phone }}{{ form.confirm_shared_phone.label_tag }}{{ form.confirm_shared_phone.errors }}</div>
+{% endif %}
+<p class="hint">Use either an exact birth date or an approximate age (0–120). Approximate ages retain their recording date.</p>
+<div class="form-actions">
+<button type="submit">
+{% if creating %}Register patient{% else %}Save changes{% endif %}
+</button>
+<a class="quiet button" href="{% if patient %}
+{% url 'patient_detail' patient.pk %}
+{% else %}
+{% url 'patients' %}
+{% endif %}">Cancel</a>
+</div>
+</form>
+</section>
+{% endblock %}

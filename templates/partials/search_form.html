@@ -1,0 +1,9 @@
+<form method="post" action="{% url 'patients' %}" class="search-form" role="search">
+{% csrf_token %}
+<label for="patient-search">Phone number, patient name or patient number</label>
+<div class="search-controls">
+<input id="patient-search" type="search" name="query" value="{{ query|default:'' }}" maxlength="160" placeholder="0300 1234567" autocomplete="off" required>
+<button type="submit">Find patient</button>
+</div>
+<p class="hint">Pakistani and international numbers accepted. Use at least 4 digits for a partial phone search.</p>
+</form>

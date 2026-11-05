@@ -1,0 +1,50 @@
+{% load static %}
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>
+{% block title %}Rumi Dental Care{% endblock %}
+</title>
+<link rel="stylesheet" href="{% static 'clinic.css' %}">
+</head>
+<body>
+<header class="topbar">
+<a class="brand" href="{% url 'dashboard' %}">Rumi<span>Dental Care</span>
+</a>
+<div class="clinic-label">Lahore · Clinic workspace</div>
+{% if user.is_authenticated %}
+<div class="identity">{{ user.username }} <span class="badge">
+{% if user.is_superuser %}Owner{% else %}Doctor{% endif %}
+</span>
+</div>
+<form action="{% url 'logout' %}" method="post">
+{% csrf_token %}
+<button class="quiet" type="submit">Log out</button>
+</form>
+{% endif %}
+</header>
+{% if user.is_authenticated %}
+<nav class="main-nav" aria-label="Main navigation">
+<a href="{% url 'dashboard' %}">Dashboard</a>
+<a href="{% url 'patients' %}">Find a patient</a>
+<a href="{% url 'patient_create' %}">Register patient</a>
+{% if user.is_superuser %}
+<a href="{% url 'accounts' %}">Accounts</a>
+{% endif %}
+<span class="local-status">● Local workspace</span>
+</nav>
+{% endif %}
+<main id="main">
+{% if messages %}
+{% for message in messages %}
+<div class="notice" role="status">{{ message }}</div>
+{% endfor %}
+{% endif %}
+{% block content %}
+{% endblock %}
+</main>
+<footer>Rumi Dental Care · Phase 1 trial build · Fictional patient data only</footer>
+</body>
+</html>

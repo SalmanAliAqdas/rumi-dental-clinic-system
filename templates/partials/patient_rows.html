@@ -1,0 +1,11 @@
+<div class="patient-list">
+{% for patient in patients %}
+<a class="patient-row" href="{% url 'patient_detail' patient.pk %}">
+<div>
+<strong>{{ patient.full_name }}</strong>
+<span>{{ patient.number }} · {{ patient.age_display }}</span>
+</div>
+<span class="phone">{{ patient.phone }} →</span>
+</a>
+{% endfor %}
+</div>
