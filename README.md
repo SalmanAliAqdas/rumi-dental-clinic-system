@@ -6,6 +6,23 @@ Private, offline-first patient management for one dental clinic and one dentist 
 
 ## Windows setup
 
+### Resume this checkout's existing trial
+
+The Phase 1 handoff used **`runtime\development`**, not the default AppData directory. The existing `owner` and `doctor` accounts are in that trial database. Reuse the virtual environment and select the same directory in every new PowerShell window:
+
+```powershell
+$env:RUMI_DATA_DIR = Join-Path (Get-Location) 'runtime\development'
+.\.venv\Scripts\python.exe manage.py showmigrations --plan
+.\.venv\Scripts\python.exe manage.py migrate
+.\.venv\Scripts\python.exe manage.py runserver 127.0.0.1:8000 --insecure --noreload
+```
+
+Keep just one trial server running. If port 8000 is occupied, use the existing server or stop that project's old server before restarting. Do not recreate accounts or reset a database to solve a login error. Password resets, if actually needed, must use this same `RUMI_DATA_DIR`.
+
+The guarded `runserver` now refuses to serve a missing, empty or unmigrated database and prints the selected database path and setup instructions in the local console. Windows sockets use exclusive binding to prevent two Django servers from sharing the same address. It does not automatically migrate, copy or replace any database.
+
+### First installation on a new computer
+
 Use supported Python 3.13 (latest security patch recommended). Django 5.2.19 LTS was verified against Python 3.13.5 here. Django's [download page](https://www.djangoproject.com/download/) listed 5.2.19 and the [5.2 compatibility notes](https://docs.djangoproject.com/en/5.2/releases/5.2/) include Python 3.13, checked 6 November 2026. All runtime dependencies, including transitive dependencies, are pinned in `requirements.txt`.
 
 Open PowerShell in this project folder:
@@ -30,7 +47,7 @@ The command asks for and validates a hidden password. It assigns only patient vi
 Start the local trial:
 
 ```powershell
-.\.venv\Scripts\python.exe manage.py runserver 127.0.0.1:8000 --insecure
+.\.venv\Scripts\python.exe manage.py runserver 127.0.0.1:8000 --insecure --noreload
 ```
 
 Open **http://127.0.0.1:8000/**. `--insecure` is Django's flag for serving this project's local CSS when `DEBUG=False`; patient views still require authentication. Bind to loopback only. Do not bind to `0.0.0.0`, publish this server, or configure a router tunnel. Stop with Ctrl+C. `runserver` is for development/trials; a reliable Windows service/startup package is Phase 6.
@@ -83,7 +100,7 @@ Optional browser check, with development-only Playwright installed (`.\.venv\Scr
 .\.venv\Scripts\python.exe scripts\browser_check.py
 ```
 
-It uses an isolated temporary database, random temporary password, loopback server and fictional data, then removes its database and stops the server. Screenshots go to ignored `runtime/`. It verifies desktop and narrow workflows and blocks external asset requests. Playwright is not needed to run the clinic application. See `docs/PROGRESS.md` for checks actually executed.
+It uses an isolated temporary database, random temporary password, loopback server and fictional data, then removes its database and stops the server. Screenshots go to ignored `runtime/`. It verifies both Owner and Doctor login, dashboard, patient search/edit and logout at desktop and narrow widths, checks account/audit permissions and blocks external asset requests. It does not use or change your existing account passwords. Playwright is not needed to run the clinic application. See `docs/PROGRESS.md` for checks actually executed.
 
 ## Structure
 

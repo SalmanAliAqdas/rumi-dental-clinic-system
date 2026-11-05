@@ -19,7 +19,7 @@ def run():
     with tempfile.TemporaryDirectory(prefix='browser-', dir=ROOT / 'runtime') as data_dir:
         env = dict(os.environ, RUMI_DATA_DIR=data_dir, RUMI_BROWSER_PASSWORD=secrets.token_urlsafe(30))
         subprocess.run([str(PYTHON), 'manage.py', 'migrate', '--noinput'], cwd=ROOT, env=env, check=True, stdout=subprocess.DEVNULL)
-        seed = "import os,django; os.environ.setdefault('DJANGO_SETTINGS_MODULE','config.settings'); django.setup(); from django.contrib.auth.models import User; from clinic.views import doctor_group; u=User.objects.create_user('browserdoctor',password=os.environ['RUMI_BROWSER_PASSWORD']); u.groups.add(doctor_group())"
+        seed = "import os,django; os.environ.setdefault('DJANGO_SETTINGS_MODULE','config.settings'); django.setup(); from django.contrib.auth.models import User; from clinic.views import doctor_group; u=User.objects.create_user('browserdoctor',password=os.environ['RUMI_BROWSER_PASSWORD']); u.groups.add(doctor_group()); User.objects.create_superuser('browserowner',password=os.environ['RUMI_BROWSER_PASSWORD'])"
         subprocess.run([str(PYTHON), '-c', seed], cwd=ROOT, env=env, check=True)
         with socket.socket() as sock:
             sock.bind(('127.0.0.1', 0))
@@ -39,7 +39,13 @@ def run():
                 raise RuntimeError('Local test server did not start.')
             with sync_playwright() as playwright:
                 browser = playwright.chromium.launch(headless=True)
-                for width in [1440, 390]:
+                cases = [
+                    (1440, 'browserowner', '03001234567', '00923001234567'),
+                    (390, 'browserowner', '+442079460958', '00442079460958'),
+                    (1440, 'browserdoctor', '03011234567', '00923011234567'),
+                    (390, 'browserdoctor', '+12025550123', '0012025550123'),
+                ]
+                for width, username, phone, alternate in cases:
                     context = browser.new_context(viewport={'width': width, 'height': 1000})
                     # Block any external traffic: every asset must be served locally.
                     context.route('**/*', lambda route: route.continue_() if route.request.url.startswith(base + '/') else route.abort())
@@ -47,14 +53,13 @@ def run():
                     errors = []
                     page.on('pageerror', lambda error: errors.append(str(error)))
                     page.goto(base + '/login/')
-                    page.get_by_label('Username').fill('browserdoctor')
+                    page.get_by_label('Username').fill(username)
                     page.get_by_label('Password').fill(env['RUMI_BROWSER_PASSWORD'])
                     page.get_by_role('button', name='Sign in', exact=True).click()
                     page.wait_for_url(base + '/')
+                    page.get_by_role('heading', name='Clinic dashboard', exact=True).wait_for()
                     page.get_by_role('link', name='+ Register patient', exact=True).click()
-                    name = f'Fictional Browser Patient {width}'
-                    phone = '03001234567' if width == 1440 else '+442079460958'
-                    alternate = '00923001234567' if width == 1440 else '00442079460958'
+                    name = f'Fictional {username} Patient {width}'
                     page.get_by_label('Full name').fill(name)
                     page.get_by_label('Primary phone number').fill(phone)
                     page.get_by_label('Approximate age').fill('32')
@@ -73,15 +78,17 @@ def run():
                     page.get_by_text('Fictional browser test', exact=True).wait_for()
                     assert page.evaluate('document.documentElement.scrollWidth <= window.innerWidth'), f'Overflow at {width}px'
                     assert page.locator('h1').evaluate("el => getComputedStyle(el).fontFamily").startswith('"Segoe UI"')
-                    page.screenshot(path=str(ROOT / 'runtime' / f'profile-{width}.png'), full_page=True)
-                    assert page.request.get(base + '/accounts/').status == 403
+                    page.screenshot(path=str(ROOT / 'runtime' / f'profile-{username}-{width}.png'), full_page=True)
+                    expected = 200 if username == 'browserowner' else 403
+                    assert page.request.get(base + '/accounts/').status == expected
+                    assert page.request.get(base + '/audit/').status == expected
                     page.get_by_role('button', name='Log out', exact=True).click()
                     page.wait_for_url(base + '/login/')
                     page.goto(profile_url)
                     page.wait_for_url('**/login/?next=**')
                     assert not errors, errors
                     context.close()
-                    print(f'PASS: {width}px login -> register -> alternate-format search -> profile -> edit -> logout; local assets, no horizontal overflow, Doctor denied accounts')
+                    print(f'PASS: {username} at {width}px login -> dashboard -> register -> alternate-format search -> profile -> edit -> logout; local assets, no overflow, account/audit permissions correct', flush=True)
                 browser.close()
         finally:
             server.terminate()
