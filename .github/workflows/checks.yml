@@ -7,8 +7,9 @@ jobs:
     runs-on: ubuntu-latest
     env:
       DJANGO_SETTINGS_MODULE: config.settings
-      RUMI_DATA_DIR: ${{ runner.temp }}/rumi-clinic-ci
     steps:
+      - name: Select isolated runtime directory
+        run: echo "RUMI_DATA_DIR=$RUNNER_TEMP/rumi-clinic-ci" >> "$GITHUB_ENV"
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
