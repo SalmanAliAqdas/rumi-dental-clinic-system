@@ -21,7 +21,7 @@ def partial_phone(value):
     if not re.fullmatch(r'[+\d\s().-]+', value):
         return ''
     digits = re.sub(r'\D', '', value)
-    if digits.startswith('0092'):
+    if digits.startswith('00'):
         digits = digits[2:]
     elif digits.startswith('0'):
         digits = '92' + digits[1:]

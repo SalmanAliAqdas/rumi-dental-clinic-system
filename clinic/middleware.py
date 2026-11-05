@@ -1,11 +1,17 @@
 from django.utils.cache import add_never_cache_headers
+import uuid
 
 class PrivacyMiddleware:
     def __init__(self, get_response):
         self.get_response = get_response
 
+    def process_exception(self, request, exception):
+        request._rumi_error_id = uuid.uuid4().hex
+
     def __call__(self, request):
         response = self.get_response(request)
+        if response.status_code >= 500 and hasattr(request, '_rumi_error_id'):
+            response['X-Rumi-Error-ID'] = request._rumi_error_id
         if not request.path.startswith('/static/'):
             add_never_cache_headers(response)
             response['Referrer-Policy'] = 'same-origin'

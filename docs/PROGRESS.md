@@ -1,5 +1,13 @@
 # Phase 1 delivery record
 
+## Phase 1 review fixes before Phase 2
+
+Corrected partial international phone prefixes: all leading `00` country-code prefixes now map to the same canonical fragment as `+`, preserving Pakistani normalization and minimum input lengths. Added regression coverage for UK partial/full variants.
+
+Added allowlisted local diagnostic events under the selected runtime `diagnostics/events.log`: UTC time, random event ID, fixed category/severity, allowlisted exception type and up to eight application source-file/line locations. Never formats exception messages, log messages/arguments, requests, passwords, query strings, bodies, clinical text or frame locals. A 500 response can carry the corresponding opaque `X-Rumi-Error-ID`; browsers retain generic errors and DEBUG stays false. Retention is one 256 KiB active file plus three rotations (approximately 1 MiB). Logging failures do not print the original record. Diagnostic files remain ignored. Tests exercise sensitive payload exclusion, bounded rotation and write failure.
+
+Added GitHub Actions checks for the complete test suite, Django checks, migration consistency and dependency consistency on Python 3.13, using only a runner-temporary data directory and fictional test data. These review fixes are committed separately before Phase 2 schema/application work. Verification results and the review commit are recorded in the final Phase 2 delivery below.
+
 Verified 6 November 2026 (Asia/Karachi). Phase 1 only; no online deployment.
 
 ## Starting state and completed work

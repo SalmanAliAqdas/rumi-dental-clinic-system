@@ -41,5 +41,8 @@ CSRF_COOKIE_SAMESITE = 'Strict'
 SECURE_CONTENT_TYPE_NOSNIFF = True
 SECURE_REFERRER_POLICY = 'same-origin'
 X_FRAME_OPTIONS = 'DENY'
-# Suppress request paths (including accidental query strings) in ordinary logs.
-LOGGING = {'version': 1, 'disable_existing_loggers': False, 'handlers': {'null': {'class': 'logging.NullHandler'}}, 'loggers': {name: {'handlers': ['null'], 'propagate': False} for name in ['django.server', 'django.request', 'django.security']}}
+# Never use Django's verbose request formatting: only allowlisted diagnostics.
+LOGGING = {'version': 1, 'disable_existing_loggers': False,
+           'handlers': {'safe': {'class': 'clinic.diagnostics.SafeDiagnosticHandler', 'level': 'WARNING'}},
+           'loggers': {name: {'handlers': ['safe'], 'level': 'WARNING', 'propagate': False}
+                       for name in ['django.server', 'django.request', 'django.security']}}
