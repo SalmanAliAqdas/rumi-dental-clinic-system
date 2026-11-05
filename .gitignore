@@ -14,3 +14,4 @@ secret.key
 .coverage
 test-results/
 node_modules/
+*.lnk

@@ -90,3 +90,18 @@ Checks actually executed on Windows:
 - Actual desktop keyboard Ctrl+C interaction was not automated; its normal console shutdown path is retained from Django. Final service/startup resilience and live-data readiness remain Phase 6 work.
 
 README now documents double-click start/stop, the matching clinic shell, explicit manual environment selection, launcher checks and opt-in Windows verification. Runtime data, secrets, private diagnostics, screenshots and fixture artifacts remain ignored. Only source/tests/documentation are included in the launcher commit. No Phase 2 work or deployment occurred. The final delivery records the normal push and remote-SHA verification.
+
+## Phase 1 desktop shortcut — 6 November 2026
+
+Created **Rumi Dental Care.lnk** on this laptop's Windows-resolved Desktop. It targets the existing root `Start Rumi Dental Care.cmd`, sets the project working directory, uses a normal visible window, has empty arguments, and has no RunAs/elevation flag. No credentials or authentication bypass are included. No suitable local clinic icon exists; the shortcut uses the built-in blue Windows PowerShell console icon as a trial application icon, not an official clinic logo. No assets were downloaded or generated.
+
+Added root **Setup Desktop Shortcut.ps1**. Its project directory comes from its own location; Desktop comes from Windows `DesktopDirectory` special-folder resolution, respecting OneDrive/redirection. No hardcoded user path, elevation, global environment/registry changes, database operations or account changes are performed. Setup creates and verifies a fresh temporary shortcut before placing it on Desktop. Same-installation reruns update the shortcut; another target or custom arguments cause a conflict and leave the existing file unchanged. After moving the project, rerun setup from its new folder; review and manually rename/remove a conflicting old shortcut rather than automatically overwriting another installation. Added `*.lnk` to `.gitignore`.
+
+Windows verification actually run:
+
+- `scripts/check_desktop_shortcut.ps1` passed against isolated Desktop/project fixture directories containing spaces. Verified exact launcher target, working directory, empty arguments, normal window/icon and same-installation rerun.
+- A fixture shortcut targeting another existing installation caused a conflict and remained **byte-for-byte unchanged**. A shortcut with custom arguments was also preserved without displaying those arguments. Fixtures were cleaned up only after checking their resolved boundary inside ignored `runtime/`.
+- Actual laptop shortcut creation succeeded using the current user's Windows-resolved Desktop, and its saved target/working directory/icon/window style/empty arguments and no-elevation flag were inspected.
+- Opened the actual `.lnk` through Windows shell execution. After an initial verification attempt raced two launcher invocations, the sequential retest passed: fresh desktop launch produced the signed ready response for the existing clinic database; a second desktop invocation retained the same server listener; anonymous entry returned HTTP 200 at `/login/`. No sign-in bypass or password entry was involved. The visible trial console remains running for manual use.
+
+Only shortcut setup, its Windows fixture check, Git ignore rules and documentation changed. Application logic, records, passwords and login protection were not modified. No Phase 2 work or deployment occurred. The final delivery records the normal source/documentation push and verified remote commit; generated `.lnk` files are not committed.

@@ -16,6 +16,28 @@ The browser opens at **http://127.0.0.1:8000/** only after a bounded readiness c
 
 **Keep the server console open while using the application. Press Ctrl+C there to stop. Closing only the browser does not stop the server.** When reusing a server, keep its original console open. This is a **Phase 1 trial launcher**; final operational installation/service packaging remains Phase 6.
 
+### Desktop shortcut
+
+The **Rumi Dental Care** desktop shortcut targets `Start Rumi Dental Care.cmd`, with this project as its working directory and a normal visible console. Double-click it to start or reuse the verified local application, open the browser and sign in with your existing account. It stores no credentials and does not request administrator privileges.
+
+To recreate it, open PowerShell in the project folder and run:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File ".\Setup Desktop Shortcut.ps1"
+```
+
+The execution policy applies only to that PowerShell process; it does not change global settings. The script derives the project directory from its own file and asks Windows for the current user's actual Desktop directory, including OneDrive/redirected Desktops. It verifies the shortcut target, working directory, empty arguments, visible window and absence of an elevation flag. Repeating setup for this same installation is safe.
+
+No suitable clinic icon is supplied yet, so the shortcut uses the built-in blue Windows console icon, not an invented clinic logo. If an approved local ICO is later supplied as `static\rumi-dental-care.ico` or `static\clinic.ico`, setup uses it without downloading anything.
+
+After moving the project, run setup from its new folder. If an existing same-name shortcut targets another location or has custom arguments, setup **preserves it and reports the conflict**. Confirm whether it belongs to the moved installation, then rename/remove that old shortcut yourself before rerunning setup. The script never replaces another installation's shortcut automatically. Generated `.lnk` files are ignored by Git.
+
+Optional Windows verification of shortcut setup, using only temporary fixtures under ignored `runtime/`:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\check_desktop_shortcut.ps1
+```
+
 ### Account-management shell
 
 Double-click **`clinic-shell.cmd`**. It opens PowerShell in this project with `DJANGO_SETTINGS_MODULE=config.settings` and `RUMI_DATA_DIR` set to this project's `runtime\development`. Its preflight uses the same non-mutating checks. Use the project's Python directly:
