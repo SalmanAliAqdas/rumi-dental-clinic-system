@@ -30,7 +30,7 @@ class BackupCoreTests(SimpleTestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        cls.root_temp=tempfile.TemporaryDirectory(prefix='backup-unit-',dir=ROOT/'runtime')
+        cls.root_temp=tempfile.TemporaryDirectory(prefix='rumi-backup-unit-')
         cls.root=Path(cls.root_temp.name);cls.source=cls.root/'fictional-source'
         cls.login_password=seed(cls.source);cls.recovery_password='Fictional-test-recovery-9837!'
         cls.package=cls.root/'complete.rumibak'
@@ -294,7 +294,7 @@ class BackupPermissionTests(TestCase):
         cls.owner=User.objects.create_superuser('backupowner',password='Fictional-only-7362!')
         cls.doctor=User.objects.create_user('backupdoctor',password='Fictional-only-7362!');cls.doctor.groups.add(doctor_group())
     def setUp(self):
-        self.temp=tempfile.TemporaryDirectory(dir=ROOT/'runtime');self.addCleanup(self.temp.cleanup)
+        self.temp=tempfile.TemporaryDirectory(prefix='rumi-backup-permissions-');self.addCleanup(self.temp.cleanup)
         self.override=override_settings(DATA_DIR=Path(self.temp.name));self.override.enable();self.addCleanup(self.override.disable)
     def paths(self):
         jid=str(uuid.uuid4());did=str(uuid.uuid4())
