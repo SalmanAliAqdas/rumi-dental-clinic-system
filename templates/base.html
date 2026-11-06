@@ -12,7 +12,10 @@
 <body>
 <a class="skip-link" href="#main">Skip to main content</a>
 <header class="topbar">
-<a class="brand" href="{% url 'dashboard' %}"><span class="brand-clinic">Rumi Dental Care</span><span class="brand-doctor">Dr Aisha Salman</span></a>
+<a class="brand" href="{% url 'dashboard' %}">
+<span class="brand-logo" aria-hidden="true"><img src="{% static 'branding/rumi-dental-care-original.jpeg' %}" alt="" width="1280" height="905"></span>
+<div class="brand-names"><span class="brand-clinic">Rumi Dental Care</span><span class="brand-doctor">Dr Aisha Salman</span></div>
+</a>
 {% if user.is_authenticated %}
 <div class="session-controls">
 <div class="identity">{{ user.username }} <span class="badge">
