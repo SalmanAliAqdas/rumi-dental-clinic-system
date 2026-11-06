@@ -1,42 +1,27 @@
 {% extends 'base.html' %}
 {% load static %}
+{% block workspace_class %}dashboard-main{% endblock %}
 {% block content %}
-<div class="page-heading">
-<div>
-<p class="eyebrow">YOUR CLINIC, IN ONE PLACE</p>
-<h1>Clinic dashboard</h1>
-<p class="muted">Find the patient. Pick up where you left off.</p>
+<div class="dashboard">
+<div class="page-heading dashboard-heading">
+<div><p class="eyebrow">YOUR CLINIC, IN ONE PLACE</p><h1>Clinic dashboard</h1><p class="muted">A clear start to your day. Everything you need, close at hand.</p></div>
+<span class="workspace-label"><span aria-hidden="true">●</span> Local workspace</span>
 </div>
-<a class="button" href="{% url 'patient_create' %}">+ Register patient</a>
-</div>
-<div class="workspace">
-<div>
-<section class="panel search-panel">
-<p class="eyebrow">PATIENT RECORDS</p>
-<h2>Who are we seeing?</h2>
+<nav class="action-tiles" aria-label="Clinic actions">
+<a class="action-tile tile-search" href="{% url 'patients' %}"><span class="tile-icon">{% include 'partials/action_icon.html' with icon='search' %}</span><span class="tile-copy"><strong>Find a patient</strong><span>Pick up their care by phone number.</span></span><span class="tile-arrow" aria-hidden="true">↗</span></a>
+{% if perms.clinic.add_patient %}<a class="action-tile tile-register" href="{% url 'patient_create' %}"><span class="tile-icon">{% include 'partials/action_icon.html' with icon='register' %}</span><span class="tile-copy"><strong>Register patient</strong><span>Create a new patient record.</span></span><span class="tile-arrow" aria-hidden="true">↗</span></a>{% endif %}
+<a class="action-tile tile-outstanding" href="{% url 'finance_outstanding' %}"><span class="tile-icon">{% include 'partials/action_icon.html' with icon='outstanding' %}</span><span class="tile-copy"><strong>Outstanding payments</strong><span>Review individual patient balances.</span></span><span class="tile-arrow" aria-hidden="true">↗</span></a>
+<a class="action-tile tile-collections" href="{% url 'finance_today' %}"><span class="tile-icon">{% include 'partials/action_icon.html' with icon='collections' %}</span><span class="tile-copy"><strong>Today's collections</strong><span>See the payments received today.</span></span><span class="tile-arrow" aria-hidden="true">↗</span></a>
+<a class="action-tile tile-schedule" href="{% url 'appointment_schedule' %}"><span class="tile-icon">{% include 'partials/action_icon.html' with icon='schedule' %}</span><span class="tile-copy"><strong>Schedule</strong><span>Plan appointments and arrivals.</span></span><span class="tile-arrow" aria-hidden="true">↗</span></a>
+<a class="action-tile tile-tasks" href="{% url 'personal_tasks' %}"><span class="tile-icon">{% include 'partials/action_icon.html' with icon='tasks' %}</span><span class="tile-copy"><strong>My tasks</strong><span>Keep your personal follow-ups in view.</span></span><span class="tile-arrow" aria-hidden="true">↗</span></a>
+</nav>
+<section class="panel search-panel dashboard-search" aria-labelledby="phone-search-title">
+<div class="search-intro"><p class="eyebrow">PATIENT RECORDS</p><h2 id="phone-search-title">Who are we seeing?</h2><p class="directory-count"><strong>{{ patient_count }}</strong> registered patient{{ patient_count|pluralize }}</p></div>
 {% include 'partials/search_form.html' %}
 </section>
-<section class="panel stat-panel">
-<div>
-<span class="stat">{{ patient_count }}</span>
-<h2>Registered patient{{ patient_count|pluralize }}</h2>
-<p class="muted">Your actual patient directory, stored on this computer.</p>
-</div>
-<a class="text-link" href="{% url 'patients' %}">Find a record →</a>
-</section>
-<section class="panel">
-<h2>Ready for the next visit</h2>
-<p class="muted">Find a patient to start or continue a visit, review medical history, record procedures and retrieve private attachments.</p>
-{% if user.is_superuser %}
-<hr>
-<h3>Owner workspace</h3>
-<a class="text-link" href="{% url 'accounts' %}">Manage Doctor accounts →</a>
-<p class="muted"><a href="{% url 'finance_reports' %}">Open financial reports</a>. <a href="{% url 'backup_centre' %}">Backup &amp; Restore</a>.</p>
-{% endif %}
-</section>
-</div>
-<aside><div id="daily-panels" data-url="{% url 'daily_panel' %}" data-expiry-seconds="{{ panel_expiry }}">{% include 'workflow/panels.html' %}</div><script src="{% static 'dashboard-panels.js' %}" defer></script>
-<div class="trial-note">Fictional data only until backup/restore and clinic trials pass.</div>
-</aside>
+<div id="daily-panels" data-url="{% url 'daily_panel' %}" data-expiry-seconds="{{ panel_expiry }}">{% include 'workflow/panels.html' %}</div>
+<script src="{% static 'dashboard-panels.js' %}" defer></script>
+{% if user.is_superuser %}<section class="owner-tools" aria-label="Owner workspace"><span>Owner workspace</span><a href="{% url 'accounts' %}">Manage Doctor accounts</a><a href="{% url 'finance_reports' %}">Financial reports</a><a href="{% url 'backup_centre' %}">Backup &amp; Restore</a><a href="{% url 'clinic_print_settings' %}">Clinic print details</a></section>{% endif %}
+<div class="trial-note dashboard-trial"><strong>Trial workspace</strong><span>Fictional data only until backup/restore and clinic trials pass.</span>{% if user.is_superuser %}<a href="{% url 'backup_centre' %}">Review backup status →</a>{% endif %}</div>
 </div>
 {% endblock %}

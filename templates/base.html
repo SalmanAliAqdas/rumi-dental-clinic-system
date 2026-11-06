@@ -12,10 +12,9 @@
 <body>
 <a class="skip-link" href="#main">Skip to main content</a>
 <header class="topbar">
-<a class="brand" href="{% url 'dashboard' %}">Rumi<span>Dental Care</span>
-</a>
-<div class="clinic-label">Lahore · Clinic workspace</div>
+<a class="brand" href="{% url 'dashboard' %}"><span class="brand-clinic">Rumi Dental Care</span><span class="brand-doctor">Dr Aisha Salman</span></a>
 {% if user.is_authenticated %}
+<div class="session-controls">
 <div class="identity">{{ user.username }} <span class="badge">
 {% if user.is_superuser %}Owner{% else %}Doctor{% endif %}
 </span>
@@ -24,25 +23,27 @@
 {% csrf_token %}
 <button class="quiet" type="submit">Log out</button>
 </form>
+</div>
 {% endif %}
 </header>
-{% if user.is_authenticated %}
+{% if user.is_authenticated and request.resolver_match.url_name != 'dashboard' %}
+{% with current=request.resolver_match.url_name %}
 <nav class="main-nav" aria-label="Main navigation">
 <a href="{% url 'dashboard' %}">Dashboard</a>
-<a class="phone-first" href="{% url 'patients' %}">Find a patient</a>
-<a href="{% url 'patient_create' %}">Register patient</a>
+<a href="{% url 'patients' %}" {% if '/patients/' in request.path and current != 'patient_create' and '/payments/' not in request.path and '/appointments/' not in request.path %}aria-current="page"{% endif %}>Find a patient</a>
+<a href="{% url 'patient_create' %}" {% if current == 'patient_create' %}aria-current="page"{% endif %}>Register patient</a>
 {% if user.is_superuser %}
-<a href="{% url 'accounts' %}">Accounts</a>
+<a href="{% url 'accounts' %}" {% if current == 'accounts' or current == 'audit' %}aria-current="page"{% endif %}>Accounts</a>
 {% endif %}
-<a href="{% url 'finance_outstanding' %}">Outstanding payments</a>
-<a href="{% url 'finance_today' %}">Today's collections</a>
-{% if user.is_superuser %}<a href="{% url 'finance_reports' %}">Financial reports</a>{% endif %}
-<a href="{% url 'appointment_schedule' %}">Schedule</a><a href="{% url 'personal_tasks' %}">My tasks</a>
-{% if user.is_superuser %}<a href="{% url 'clinic_print_settings' %}">Clinic print details</a><a href="{% url 'backup_centre' %}">Backup &amp; Restore</a>{% endif %}
-<span class="local-status">● Local workspace</span>
+<a href="{% url 'finance_outstanding' %}" {% if current == 'finance_outstanding' or '/payments/' in request.path %}aria-current="page"{% endif %}>Outstanding payments</a>
+<a href="{% url 'finance_today' %}" {% if current == 'finance_today' %}aria-current="page"{% endif %}>Today's collections</a>
+{% if user.is_superuser %}<a href="{% url 'finance_reports' %}" {% if '/finance/' in request.path and current != 'finance_today' and current != 'finance_outstanding' %}aria-current="page"{% endif %}>Financial reports</a>{% endif %}
+<a href="{% url 'appointment_schedule' %}" {% if current == 'appointment_schedule' or '/appointments/' in request.path %}aria-current="page"{% endif %}>Schedule</a><a href="{% url 'personal_tasks' %}" {% if '/tasks/' in request.path %}aria-current="page"{% endif %}>My tasks</a>
+{% if user.is_superuser %}<a href="{% url 'clinic_print_settings' %}" {% if current == 'clinic_print_settings' %}aria-current="page"{% endif %}>Clinic print details</a><a href="{% url 'backup_centre' %}" {% if '/backups/' in request.path %}aria-current="page"{% endif %}>Backup &amp; Restore</a>{% endif %}
 </nav>
+{% endwith %}
 {% endif %}
-<main id="main">
+<main id="main" class="{% block workspace_class %}{% endblock %}">
 {% if messages %}
 {% for message in messages %}
 <div class="notice" role="status">{{ message }}</div>

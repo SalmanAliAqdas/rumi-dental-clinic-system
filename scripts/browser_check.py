@@ -146,7 +146,7 @@ def run():
                     page.get_by_role('button', name='Sign in', exact=True).click()
                     page.wait_for_url(base + '/')
                     page.get_by_role('heading', name='Clinic dashboard', exact=True).wait_for()
-                    page.get_by_role('link', name='+ Register patient', exact=True).click()
+                    page.get_by_role('link', name='Register patient', exact=False).click()
                     name = f'Fictional {username} Patient {width}'
                     page.get_by_label('Full name').fill(name)
                     page.get_by_label('Primary phone number').fill(phone)
