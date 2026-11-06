@@ -30,7 +30,7 @@ class TrialStartupTests(SimpleTestCase):
         )
         self.assertNotEqual(result.returncode, 0)
         self.assertIn('Trial server not started', result.stderr)
-        self.assertIn(str(directory / 'clinic.sqlite3'), result.stderr)
+        self.assertIn(str((directory / 'clinic.sqlite3').resolve()), result.stderr)
         self.assertIn('RUMI_DATA_DIR', result.stderr)
         self.assertIn('migrate', result.stderr)
         self.assertNotIn('Traceback', result.stderr)

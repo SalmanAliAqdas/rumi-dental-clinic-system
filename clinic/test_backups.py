@@ -31,7 +31,7 @@ class BackupCoreTests(SimpleTestCase):
     def setUpClass(cls):
         super().setUpClass()
         cls.root_temp=tempfile.TemporaryDirectory(prefix='rumi-backup-unit-')
-        cls.root=Path(cls.root_temp.name);cls.source=cls.root/'fictional-source'
+        cls.root=Path(cls.root_temp.name).resolve();cls.source=cls.root/'fictional-source'
         cls.login_password=seed(cls.source);cls.recovery_password='Fictional-test-recovery-9837!'
         cls.package=cls.root/'complete.rumibak'
         cls.manifest=a.create_package(cls.source,cls.package,cls.recovery_password,work_parent=cls.root)
@@ -40,7 +40,7 @@ class BackupCoreTests(SimpleTestCase):
         cls.root_temp.cleanup();super().tearDownClass()
     def setUp(self):
         self.temp=tempfile.TemporaryDirectory(dir=self.root);self.addCleanup(self.temp.cleanup)
-        self.work=Path(self.temp.name)
+        self.work=Path(self.temp.name).resolve()
     def source_copy(self):
         target=self.work/'source';shutil.copytree(self.source,target);return target
     def tamper(self,change,compression=zipfile.ZIP_STORED,symlink=False):

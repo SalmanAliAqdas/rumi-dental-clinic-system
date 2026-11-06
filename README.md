@@ -1,4 +1,4 @@
-# Rumi Dental Care ? local Windows application
+# Rumi Dental Care - local Windows application
 
 Private, offline-first dental clinic records for one branch and one dentist. Django 5.2 LTS, Python 3.13 and SQLite; no online hosting, external assets or paid services. Runtime dependencies are pinned in `requirements.txt`.
 

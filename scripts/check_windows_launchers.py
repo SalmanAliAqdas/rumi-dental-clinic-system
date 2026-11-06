@@ -130,8 +130,23 @@ def main():
             assert result.returncode == 0 and 'Verified existing Rumi trial server' in result.stdout, result.stdout + result.stderr
             assert process.poll() is None
             print('PASS: application starts and becomes ready; a second launcher verifies and reuses it without a duplicate server.', flush=True)
-            result = run_cmd(ROOT / 'Start Rumi Dental Care.cmd', '--no-browser')
-            assert result.returncode != 0 and 'identity cannot be verified' in result.stderr
+            # A clean CI checkout has no working clinic DB. Build an independent
+            # second fictional installation instead of depending on patient data.
+            other = fixture / 'Other checkout'
+            other.mkdir()
+            for folder in ['clinic','config','templates','static','scripts']:
+                shutil.copytree(ROOT/folder,other/folder,ignore=shutil.ignore_patterns('__pycache__','*.pyc'))
+            for filename in ['manage.py','Start Rumi Dental Care.cmd']:
+                shutil.copy2(ROOT/filename,other/filename)
+            other_link=other/'.venv'
+            subprocess.run(['cmd.exe','/d','/c','mklink','/J',str(other_link),str(ROOT/'.venv')],check=True,capture_output=True)
+            try:
+                other_env=dict(os.environ,DJANGO_SETTINGS_MODULE='config.settings',RUMI_DATA_DIR=str(other/'runtime/development'))
+                subprocess.run([str(other_link/'Scripts/python.exe'),'manage.py','migrate','--noinput'],cwd=other,env=other_env,check=True,capture_output=True)
+                result=run_cmd(other/'Start Rumi Dental Care.cmd','--no-browser')
+                assert result.returncode != 0 and 'identity cannot be verified' in result.stderr, result.stdout+result.stderr
+            finally:
+                if other_link.is_junction():os.rmdir(other_link)
             assert process.poll() is None and ready(fixture)
             print('PASS: another Rumi checkout/database on the same port is rejected, not reused or killed.', flush=True)
             # This is the fixture process tree created above, never an arbitrary
