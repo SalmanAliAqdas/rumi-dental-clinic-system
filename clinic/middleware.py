@@ -19,3 +19,18 @@ class PrivacyMiddleware:
             if 'Content-Security-Policy' not in response:
                 response['Content-Security-Policy'] = "default-src 'self'; style-src 'self'; script-src 'self'; img-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'"
         return response
+
+
+from django.contrib.sessions.middleware import SessionMiddleware
+from django.utils.cache import patch_vary_headers
+
+class ClinicSessionMiddleware(SessionMiddleware):
+    def process_response(self, request, response):
+        # Status polling is not user activity and must not prolong Owner login.
+        session = getattr(request, 'session', None)
+        if (request.path.startswith('/backups/jobs/') and request.path.endswith('/status/')
+                and session is not None and not session.modified and not session.is_empty()):
+            if session.accessed:
+                patch_vary_headers(response, ('Cookie',))
+            return response
+        return super().process_response(request, response)

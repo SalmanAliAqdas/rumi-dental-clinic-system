@@ -1,5 +1,6 @@
 """Fail safely when the local trial selects an uninitialized database."""
 from pathlib import Path
+import os
 import socket
 
 from django.conf import settings
@@ -28,6 +29,20 @@ class ExclusiveTrialServer(WSGIServer):
 class Command(StaticRunserverCommand):
     server_cls = ExclusiveTrialServer
 
+    def inner_run(self, *args, **kwargs):
+        from clinic.backups.locks import lease, lock_path, Busy
+        self._backup_lifetime = True
+        self._backup_scheduler = None
+        try:
+            with lease(lock_path(settings.DATA_DIR, 'server')):
+                return super().inner_run(*args, **kwargs)
+        except Busy:
+            raise CommandError('This runtime is already served or under offline restoration. Nothing started.') from None
+        finally:
+            if self._backup_scheduler:
+                self._backup_scheduler[0].set()
+                self._backup_scheduler[1].join(timeout=2)
+
     def check_migrations(self):
         connection = connections[DEFAULT_DB_ALIAS]
         database = str(connection.settings_dict['NAME'])
@@ -47,3 +62,7 @@ class Command(StaticRunserverCommand):
         if executor.migration_plan(executor.loader.graph.leaf_nodes()):
             raise CommandError(instruction)
         self.stdout.write(f'Trial data directory: {settings.DATA_DIR}')
+
+        if getattr(self, '_backup_lifetime', False) and not self._backup_scheduler and os.environ.get('RUMI_DISABLE_BACKUP_SCHEDULER') != '1':
+            from clinic.backups.jobs import start_scheduler
+            self._backup_scheduler = start_scheduler(settings.DATA_DIR)

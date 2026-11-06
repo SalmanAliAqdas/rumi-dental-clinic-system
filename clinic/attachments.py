@@ -93,6 +93,9 @@ def stored_path(name):
     return path
 
 
+from .backups.locks import protected_write
+
+@protected_write
 def store_attachment(form, upload, patient, actor):
     data, extension, content_type, thumbnail = validate_upload(upload)
     key = uuid.uuid4().hex

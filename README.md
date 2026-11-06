@@ -1,4 +1,4 @@
-# Rumi Dental Care — Phase 4 trial
+# Rumi Dental Care — Phase 5 trial
 
 Private, offline-first patient management for one dental clinic and one dentist in Lahore. The workflow is phone → matching patients → individual profile → dated visit → clinical history, treatment stages and private attachments. No online deployment, paid services, CDN assets or internet calls are used during everyday operation.
 
@@ -65,6 +65,8 @@ Keep just one trial server running. If port 8000 is occupied, use the existing s
 The guarded `runserver` now refuses to serve a missing, empty or unmigrated database and prints the selected database path and setup instructions in the local console. Windows sockets use exclusive binding to prevent two Django servers from sharing the same address. It does not automatically migrate, copy or replace any database.
 
 ### First installation on a new computer
+
+**Recovering an existing clinic? Do not run migrate/createsuperuser below to initialize replacement accounts. Install source/dependencies, then use the Phase 5 standalone recovery instructions before launching.** The initialization commands below are only for a genuinely new clinic with no existing records.
 
 Use supported Python 3.13 (latest security patch recommended). Django 5.2.19 LTS was verified against Python 3.13.5 here. Django's [download page](https://www.djangoproject.com/download/) listed 5.2.19 and the [5.2 compatibility notes](https://docs.djangoproject.com/en/5.2/releases/5.2/) include Python 3.13, checked 6 November 2026. All runtime dependencies, including transitive dependencies, are pinned in `requirements.txt`.
 
@@ -185,7 +187,7 @@ Every patient route checks authentication and the relevant Django permission on 
 
 Search uses same-origin POST, paginates at 20 results and requires four digits for partial phone queries (two characters for names/numbers). Canonical E.164 phone and WhatsApp columns have indexes for exact lookup. Substring searches can scan rows; realistic-volume performance must be evaluated during the clinic trial. Full phone matching searches both primary phone and WhatsApp. Numbers are not unique across patients. Patient numbers are immutable, unique opaque references; they are not an authorization mechanism.
 
-Patient responses have private/no-store cache controls, a same-origin referrer policy and restrictive same-origin CSP headers. Ordinary Django request/access logs are suppressed to avoid retaining URLs or patient terms. The audit database stores actor, patient/object references, action and timestamp, never copies of clinical text. It records clinical changes, completion/amendments, medical updates, treatment-plan changes and attachment upload/access. Dated medical snapshots, plan revisions and completed-visit amendments retain their clinical context in clinical tables. Trusted direct database/ORM maintenance can bypass application restrictions: this is **not tamper-proof**. Neither SQLite, uploaded originals nor the secret file is encrypted by this application. Full backup/restore remains pending. Financial reports and CSV export are Owner-only.
+Patient responses have private/no-store cache controls, a same-origin referrer policy and restrictive same-origin CSP headers. Ordinary Django request/access logs are suppressed to avoid retaining URLs or patient terms. The audit database stores actor, patient/object references, action and timestamp, never copies of clinical text. It records clinical changes, completion/amendments, medical updates, treatment-plan changes and attachment upload/access. Dated medical snapshots, plan revisions and completed-visit amendments retain their clinical context in clinical tables. Trusted direct database/ORM maintenance can bypass application restrictions: this is **not tamper-proof**. Neither SQLite, uploaded originals nor the secret file is encrypted by this application. Encrypted complete backups and verified offline recovery are implemented; final operational trials remain Phase 6. Financial reports and CSV export are Owner-only.
 
 Safe local diagnostics are bounded to a 256 KiB file plus three rotated files at `runtime/development/diagnostics/events.log`. Only a generated event ID, time, fixed category/severity, allowlisted exception type and application source locations are recorded. No exception message, request fields, passwords, patient text, SQL or locals are formatted. Generic 500 responses provide an `X-Rumi-Error-ID` header without showing details. A logging failure never falls back to printing the unsafe event.
 
@@ -237,7 +239,7 @@ The helper copies the consistent SQLite database with its matching secret to ign
 
 Generated originals live at `runtime/development/attachments/originals/`; replaceable image thumbnails at `attachments/thumbnails/`; temporary upload files at `upload-tmp/`. Uploads are limited to 10 MiB, images to 10,000 pixels per side/25 million pixels, and passive PDFs to 200 pages with bounded structure checks. Extension and actual content must agree; active/encrypted/malformed PDFs and unsupported formats are rejected. All original, thumbnail and preview routes require authentication and permission; there is no public media route. Missing files produce a safe unavailable response while their metadata is retained. Upload failures clean up newly created files; power-loss orphan reconciliation and full restore testing remain future work. Future complete backups must capture the database **and every uploaded original together**, plus needed configuration and a verified manifest.
 
-Phases 3 and 4 are implemented below. Phase 5 requires separate authorization. See [requirements](docs/REQUIREMENTS.md), [roadmap](docs/ROADMAP.md) and [progress](docs/PROGRESS.md).
+Phases 3-5 are implemented below. Final packaging and clinic trials remain Phase 6. See [requirements](docs/REQUIREMENTS.md), [roadmap](docs/ROADMAP.md) and [progress](docs/PROGRESS.md).
 
 
 ## Phase 3: charges, payments and installments
@@ -312,4 +314,69 @@ Prepare Reminder shows a short clinic-name/date/time reminder without patient na
 5. Add/complete a personal task; use Completed history to reopen it. Log in as another user and confirm that task is absent and its direct URL is denied.
 6. Owner-only: view/print the prescription and historical financial reports; prescription creation/issuance is denied. Doctor financial report/export restrictions remain unchanged.
 
-Migrations 0006-0007 are additive. The known clinic server was paused before a verified consistent database/secret safety copy; every pre-existing row and uploaded-file/secret fingerprint was compared after applying only to `runtime/development`. This is still not Phase 5 backup/restore. Verification results and exact limitations are in `docs/PROGRESS.md`. Stop after Phase 4; continue fictional data until recovery and clinic trials pass.
+Migrations 0006-0007 are additive. The known clinic server was paused before a verified consistent database/secret safety copy; every pre-existing row and uploaded-file/secret fingerprint was compared after applying only to `runtime/development`. That limited safety copy is separate from Phase 5 backup/restore below. Verification results and exact limitations are in `docs/PROGRESS.md`. Continue fictional data until operational clinic trials pass.
+
+
+## Phase 5: complete encrypted backups and verified recovery
+
+Owner opens **Backup & Restore**. Doctor is denied settings, packages/downloads, verification/restore and bulk migration exports on the server. No real recovery password or destination has been configured on your behalf. Choose your own password and folders; test first with fictional data.
+
+### First backup setup and daily use
+
+1. In Windows Explorer, create/select an existing backup folder **outside** `runtime/development`, for example a project `runtime/backup-packages` folder or a folder on your USB drive. Copy its full absolute path. Add destination in Backup & Restore, give it a clear label, select Local/External/Google Drive folder, and paste that path. Missing/unwritable/disconnected drives never fall back to another folder. Multiple destinations are supported independently.
+2. Choose **Back Up Now**, enter/confirm a strong recovery password (minimum 12 characters), and Continue. A background job reserves a coordinated write pause only for SQLite snapshot and attachment copying; concurrent writes receive an explicit retry response. Encryption, verification and destination copying run separately. Watch the job's **per-destination** results. Only a complete verified file is successful; partial local/external results remain distinct.
+3. Use **Verify Backup** with the generated encrypted package's full path and recovery password. This checks it without replacing working data. Keep the recovery password in a separate password manager/off-device record. **Losing it prevents recovery.** Do not store the only password record on the laptop being backed up.
+4. Configure **Automatic settings** for daily Pakistan time and retained versions (2-365, default 7). Enter the recovery password once for automatic use; it is saved only with **current Windows user-bound DPAPI**, never plaintext. Run the app as that same Windows user. If DPAPI is unavailable/unreadable, automatic backup fails with a clear warning; reconfigure it after moving computers/users. Manual portable recovery needs the recovery password, not DPAPI or the failed laptop's secret.
+5. Backups run **only while this app/server is running**. Startup and minute checks find the latest due daily slot; a missed slot creates a snapshot of data **now**, with the actual creation timestamp, not an invented past snapshot. Successful destinations are not duplicated for that slot; disconnected destinations retry separately. Check missing/overdue/failure warnings and the latest file's availability. Do not assume a hidden/background server runs after Windows shuts down.
+
+Each versioned `.rumibak` includes a supported SQLite backup snapshot, every original and thumbnail, matching `secret.key`, allowlisted portable upload limits/timezone, migration/schema metadata, row counts and a size/SHA-256 file manifest. Accounts/password hashes, roles, permanent IDs, all clinical/financial/workflow data, business settings and database audit history are retained. Source, virtual environments, sessions-in-memory, diagnostics, temporary work, earlier backups and machine-specific DPAPI/destination/job configuration are excluded. Database sessions inside the snapshot are cleared when restored. Reconfigure destinations/automatic credentials on the new computer. Business print/clinician settings in the database are preserved.
+
+Packages use [cryptography](https://cryptography.io/en/stable/hazmat/primitives/aead/) AES-256-GCM authenticated encryption with a random nonce/salt and [Argon2id](https://cryptography.io/en/stable/hazmat/primitives/key-derivation-functions/#argon2id) password derivation (64 MiB, 3 iterations, 4 lanes). Parameters are fixed/bounded by package version; the password is not a command argument or plaintext setting. The format is an authenticated encrypted container, not a password-protected ZIP. Plaintext temporary staging stays local under the private runtime work area and is removed on normal completion; this does not encrypt the live runtime or promise secure erasure after power loss. Do not synchronize the live runtime/staging folder.
+
+### External drives, Google Drive folders and retention
+
+Keep at least one external/off-device copy and rehearse recovery. **Another partition on the same physical disk does not protect against disk failure.** A destination labelled External is the folder you selected; the app cannot establish that it is a physically independent disk.
+
+Google Drive mode uses an **existing synchronized folder** and requires a separate existing **unsynchronized staging folder on the same volume**, outside the destination tree. Encrypted temporary output stays there; only completed verified encrypted packages are atomically moved into the selected sync folder. You must choose a staging folder not watched by a sync client; the app validates path/volume boundaries, not Drive's client configuration. Unsupported virtual/streamed-drive rename behavior fails instead of silently substituting a location. The result says **Saved to Google Drive folder**. Google Drive Desktop plus internet are needed for synchronization. Local saving is **not verified cloud upload or remote protection**. No OAuth/API integration was added.
+
+Completed copies are read/verified before success. Free-space checks, temporary names and atomic finalization handle normal errors/disconnections. Retention prunes only positively recorded packages from this installation/destination with matching checksums, preserves at least the newest two present good versions, ignores unrelated/changed files and never prunes after a failed/partial new job. It does not recursively clean a drive. Interrupted `.part`/work directories can remain after abrupt termination; they are not successful packages. No power-loss durability claim is made.
+
+### Restore onto this or another laptop
+
+The web Restore action requires the current Owner password and explicit confirmation, then provides a verified preview/instructions. **It never replaces an active database in a request.** Actual activation is done by the local helper with the intended server stopped. A running guarded server holds a cross-process lease and blocks replacement. Existing runtime replacement also requires active Owner username/password at the helper; new-computer recovery requires the package password and explicit confirmation without creating default accounts.
+
+1. Install compatible project source, Python and this `requirements.txt` into its `.venv`. On a new computer with no initialized database, **do not run createsuperuser or initialize a substitute database**.
+2. Copy the encrypted `.rumibak` outside the directory to be restored. Choose the data directory explicitly. To use the existing desktop shortcut/CMD launchers, choose **this checkout's `runtime/development`**. Those launchers intentionally always select that directory.
+3. Verify first (the password prompt is hidden in an interactive terminal):
+
+```powershell
+.\.venv\Scripts\python.exe scripts\recovery.py verify --package "E:\RumiBackups\selected.rumibak"
+```
+
+4. Stop only the intended Rumi server. Restore after reviewing date/schema and the explicit replacement target:
+
+```powershell
+.\.venv\Scripts\python.exe scripts\recovery.py restore --package "E:\RumiBackups\selected.rumibak" --data-dir "C:\path\to\rumi-dental-clinic-system\runtime\development"
+```
+
+Enter the recovery password, existing Owner credentials when replacing an initialized runtime, and `RESTORE` at confirmation. Passwords are not accepted as CLI arguments. The helper also supports private redirected input for fictional automated drills without Windows console echo/credential arguments. It rejects wrong passwords, corruption, unsafe paths/links, excessive resources, unsupported future schemas and inconsistent migration/table definitions. Known older supported schemas are migrated **only in staging using trusted checkout code**; the original package remains unchanged. It never imports/runs code from the package.
+
+Activation retains a checked pre-restore runtime in a sibling rollback directory, closes its SQLite handles, switches the entire staged database/secret/attachments directory together, probes it and clears sessions. A normal activation failure recovers the old directory. An interruption journal blocks normal startup before secret/database initialization; after stopping servers, use:
+
+```powershell
+.\.venv\Scripts\python.exe scripts\recovery.py repair --data-dir "C:\path\to\rumi-dental-clinic-system\runtime\development"
+```
+
+Repair requires local confirmation and the existing/rollback Owner credentials where available. Do not manually delete the journal or overwrite the only rollback copy. Rollback/failed-stage directories are local runtime data, not encrypted off-device backups; preserve them until recovery is checked. This design was tested for injected activation failure and interrupted-journal repair, **not real power loss**.
+
+5. Launch with the existing shortcut and sign in with the **restored original credentials**. No account bypass/reset is performed. Verify phone search, complete histories, balances, appointments, prescription prints and images. Reconfigure destinations/automatic credentials on the new Windows user/computer. If you intentionally restored to another data directory, use explicit `RUMI_DATA_DIR` plus `manage.py runserver` as documented above; the root shortcut will still select `runtime/development` and must not be mistaken for that other installation.
+
+### Portable migration export and verification limits
+
+Owner **Encrypted migration export** produces a `.rumiexport` with versioned Unicode `records.json`, safe CSV tables, field/foreign-key dictionary, stable PK/FK IDs and an attachment mapping/files/checksums. It includes every business module from Phases 1-4. Password hashes, application secret, sessions, login-throttle state and DPAPI credentials are excluded. Decimal money is written as fixed-precision text. CSV formula cells are neutralized; JSON preserves original values. **This is not a login-preserving disaster-recovery backup and cannot be restored as one.** No migration importer is implemented.
+
+Current strict limits: 8 GiB encrypted/expanded package, 2 GiB per file, 100,000 entries, 16 MiB manifest, and 15 MiB structured migration records. Oversize/unsupported content fails clearly; no partial export is marked successful. Archives use stored files, so compressed archives, symlinks, unexpected paths, executable files and compression bombs are rejected. Enough local working space for snapshot/encryption/decryption/staging is required. Bulk-volume work and reliable operational packaging remain Phase 6.
+
+`manage.py test` covers backup/recovery permissions, consistency, corruption/resource cases, destinations, scheduling/retention, full restoration and exports. `scripts/recovery_drill.py` creates only isolated fictional clinical/financial/workflow data, invokes the standalone helper to a clean directory and verifies original logins/relationships/file checksums. `scripts/backup_ui_check.py` is the optional Playwright backup-only UI check; the full browser script includes it too. The maintainer-only `scripts/generate_backup_schema.py --write` regenerates public schema metadata from fresh trusted migrations, never from patient data, when supported migrations change. See PROGRESS for actual runs and limitations.
+
+Phase 5 stops here. Final Windows packaging, physical off-device/restore trials, power-loss behavior and operational clinic sign-off remain Phase 6. Continue **fictional data only** until those gates pass.

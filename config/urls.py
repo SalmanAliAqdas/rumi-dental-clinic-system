@@ -2,10 +2,23 @@ from django.urls import path
 from django.contrib.auth.views import LogoutView
 from clinic import finance_views as finance
 from clinic import workflow_views as workflow
+from clinic import backup_views as backups
 from clinic import views
 from clinic import clinical_views as clinical
 
 urlpatterns = [
+    path('backups/', backups.centre, name='backup_centre'),
+    path('backups/destinations/new/', backups.destination_new, name='backup_destination'),
+    path('backups/destinations/<uuid:destination_id>/toggle/', backups.destination_toggle, name='backup_destination_toggle'),
+    path('backups/settings/', backups.automatic_settings, name='backup_settings'),
+    path('backups/create/', backups.create, name='backup_create'),
+    path('backups/export/', backups.create, {'kind':'export'}, name='backup_export'),
+    path('backups/verify/', backups.verify, name='backup_verify'),
+    path('backups/restore/', backups.verify, {'restore_preview':True}, name='backup_restore'),
+    path('backups/jobs/<uuid:job_id>/', backups.job_detail, name='backup_job'),
+    path('backups/jobs/<uuid:job_id>/status/', backups.status, name='backup_status'),
+    path('backups/jobs/<uuid:retry_id>/retry/', backups.create, name='backup_retry'),
+    path('backups/jobs/<uuid:job_id>/download/<uuid:destination_id>/', backups.download, name='backup_download'),
     path('schedule/', workflow.schedule, name='appointment_schedule'),
     path('dashboard/panels/', workflow.daily_panel, name='daily_panel'),
     path('tasks/', workflow.tasks, name='personal_tasks'),

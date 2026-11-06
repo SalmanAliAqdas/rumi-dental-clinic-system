@@ -13,6 +13,7 @@ from urllib.parse import urlsplit
 from playwright.sync_api import sync_playwright
 from finance_browser import check_finance
 from workflow_browser import check_workflow
+from backup_browser import check_backups
 
 def check_clinical(page, context, base, password, image_path, database, width):
     page.get_by_role('link', name='+ Start Visit', exact=True).click()
@@ -100,7 +101,8 @@ if not PYTHON.exists():
 
 def run():
     (ROOT / 'runtime').mkdir(exist_ok=True)
-    with tempfile.TemporaryDirectory(prefix='browser-', dir=ROOT / 'runtime') as data_dir:
+    with tempfile.TemporaryDirectory(prefix='browser-', dir=ROOT / 'runtime') as data_dir, tempfile.TemporaryDirectory(prefix='backup-browser-destination-', dir=ROOT / 'runtime') as backup_destination:
+        backup_password=secrets.token_urlsafe(30)
         env = dict(os.environ, RUMI_DATA_DIR=data_dir, RUMI_BROWSER_PASSWORD=secrets.token_urlsafe(30))
         subprocess.run([str(PYTHON), 'manage.py', 'migrate', '--noinput'], cwd=ROOT, env=env, check=True, stdout=subprocess.DEVNULL)
         image_path = Path(data_dir) / 'fictional.png'
@@ -170,6 +172,8 @@ def run():
                     assert page.request.get(base + '/audit/').status == expected
                     check_finance(page, base, profile_url, username, width, ROOT)
                     check_workflow(page, context, base, profile_url, username, width, ROOT, env['RUMI_BROWSER_PASSWORD'])
+                    check_backups(page, base, username, width, Path(backup_destination), backup_password, env['RUMI_BROWSER_PASSWORD'])
+                    page.goto(profile_url)
                     if username == 'browserdoctor':
                         check_clinical(page, context, base, env['RUMI_BROWSER_PASSWORD'], image_path, Path(data_dir) / 'clinic.sqlite3', width)
                     page.get_by_role('button', name='Log out', exact=True).click()

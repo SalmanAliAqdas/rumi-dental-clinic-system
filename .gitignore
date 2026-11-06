@@ -8,10 +8,16 @@ __pycache__/
 *.log
 runtime/
 uploads/
-backups/
+/backups/
 staticfiles/
 secret.key
 .coverage
 test-results/
 node_modules/
 *.lnk
+
+*.rumibak
+*.rumiexport
+*.part
+*.dpapi
+.rumi-*-restore.json

@@ -5,6 +5,8 @@ from django.core.management.utils import get_random_secret_key
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 DATA_DIR = Path(os.environ.get('RUMI_DATA_DIR', BASE_DIR / 'runtime' / 'development')).resolve()
+if (DATA_DIR.parent / ('.' + DATA_DIR.name + '.rumi-restore.json')).exists():
+    raise RuntimeError('Interrupted restore: run scripts/recovery.py repair with this explicit --data-dir before startup. Nothing initialized.')
 DATA_DIR.mkdir(parents=True, exist_ok=True)
 key_file = DATA_DIR / 'secret.key'
 try:
@@ -17,7 +19,7 @@ DEBUG = False
 ALLOWED_HOSTS = ['localhost', '127.0.0.1', '[::1]']
 # Clinic precedes staticfiles so its guarded runserver command is selected.
 INSTALLED_APPS = ['clinic', 'django.contrib.auth', 'django.contrib.contenttypes', 'django.contrib.sessions', 'django.contrib.messages', 'django.contrib.staticfiles']
-MIDDLEWARE = ['django.middleware.security.SecurityMiddleware', 'clinic.middleware.PrivacyMiddleware', 'django.contrib.sessions.middleware.SessionMiddleware', 'django.middleware.common.CommonMiddleware', 'django.middleware.csrf.CsrfViewMiddleware', 'django.contrib.auth.middleware.AuthenticationMiddleware', 'django.contrib.messages.middleware.MessageMiddleware', 'django.middleware.clickjacking.XFrameOptionsMiddleware']
+MIDDLEWARE = ['django.middleware.security.SecurityMiddleware', 'clinic.middleware.PrivacyMiddleware', 'clinic.backups.locks.RuntimeBoundaryMiddleware', 'clinic.middleware.ClinicSessionMiddleware', 'django.middleware.common.CommonMiddleware', 'django.middleware.csrf.CsrfViewMiddleware', 'django.contrib.auth.middleware.AuthenticationMiddleware', 'django.contrib.messages.middleware.MessageMiddleware', 'django.middleware.clickjacking.XFrameOptionsMiddleware']
 ROOT_URLCONF = 'config.urls'
 TEMPLATES = [{'BACKEND': 'django.template.backends.django.DjangoTemplates', 'DIRS': [BASE_DIR / 'templates'], 'APP_DIRS': True, 'OPTIONS': {'context_processors': ['django.template.context_processors.request', 'django.contrib.auth.context_processors.auth', 'django.contrib.messages.context_processors.messages']}}]
 WSGI_APPLICATION = 'config.wsgi.application'
@@ -57,3 +59,13 @@ DATA_UPLOAD_MAX_MEMORY_SIZE = 2 * 1024 * 1024
 FILE_UPLOAD_MAX_MEMORY_SIZE = 1024 * 1024
 FILE_UPLOAD_TEMP_DIR = DATA_DIR / 'upload-tmp'
 FILE_UPLOAD_TEMP_DIR.mkdir(exist_ok=True)
+
+# Only validated portable limits are read; never import/evaluate package code.
+portable_file = DATA_DIR / 'portable.json'
+if portable_file.is_file():
+    from clinic.backups.archive import read_json, validate_portable
+    portable = read_json(portable_file, 65536)
+    validate_portable(portable)
+    for portable_name, portable_value in portable['limits'].items():
+        if portable_name not in os.environ:
+            globals()[portable_name] = portable_value

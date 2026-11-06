@@ -52,6 +52,8 @@ def preflight():
             'Do not initialize another database or create replacement accounts. '
             'Ask the owner to locate the existing trial data first.'
         )
+    if (database.parent.parent / ('.' + database.parent.name + '.rumi-restore.json')).exists():
+        raise TrialLaunchError('An interrupted restore needs scripts/recovery.py repair for the explicit data directory. Nothing initialized.')
     secret_file = database.parent / 'secret.key'
     if not secret_file.is_file() or not secret_file.read_text(encoding='utf-8').strip():
         raise TrialLaunchError('The existing runtime\\development\\secret.key is missing or empty. Restore the matching secret; this launcher will not generate one.')
