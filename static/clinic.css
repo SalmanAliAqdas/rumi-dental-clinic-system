@@ -539,3 +539,15 @@ form ul:not(.errorlist) {
 @media print { .clinical-alerts, .tooth, .tooth-static { background: white; color: black; } .clinical-notes dt, .medical-snapshot dt { color: black; } }
 
 .receipt { background: white; color: #172334; } .receipt a { color: #1657a3; } .panel select, .panel input, .panel textarea { max-width: 100%; box-sizing: border-box; } .panel p { overflow-wrap: anywhere; } @media print { .no-print, .main-nav, .app-header, footer, .skip-link { display: none !important; } .receipt { border: 0; box-shadow: none; color: black; background: white; } }
+
+.appointment-card h3, .appointment-card p { overflow-wrap: anywhere; }
+.print-document { background: white; color: #172334; }
+.print-document main { max-width: 850px; margin: 2rem auto; padding: 1rem; }
+.print-document .panel { background: white; color: #172334; box-shadow: none; border: 1px solid #bcc3cc; break-inside: avoid; }
+.print-document a { color: #1657a3; }
+@media print {
+  .print-document, .print-document main, .print-document .panel { color: black; background: white; box-shadow: none; }
+  .print-document main { max-width: none; margin: 0; padding: 0; }
+  .print-document header, .print-document h2, .print-document h3 { break-after: avoid; }
+  .print-document .panel { break-inside: avoid; }
+}

@@ -10,5 +10,5 @@
   <a href="{% url 'clinical_section' patient.pk 'chart' %}">Dental Chart</a>
   <a href="{% url 'clinical_section' patient.pk 'plans' %}">Treatment Plans</a>
   <a href="{% url 'clinical_section' patient.pk 'attachments' %}">Attachments / X-rays</a>
-  <span>Prescriptions · Phase 4</span><a href="{% url 'finance_patient' patient.pk %}">Payments</a>
+  <a href="{% url 'prescriptions' patient.pk %}">Prescriptions</a><a href="{% url 'patient_appointments' patient.pk %}">Appointments</a><a href="{% url 'appointment_new' patient.pk %}">Book appointment</a><a href="{% url 'finance_patient' patient.pk %}">Payments</a>
 </nav>

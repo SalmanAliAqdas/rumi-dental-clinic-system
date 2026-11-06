@@ -1,0 +1,9 @@
+﻿{% extends 'base.html' %}{% block content %}
+{% if patient %}{% include 'clinical/patient_header.html' %}{% endif %}
+<section class="panel"><h1>{% if patient %}Patient appointment history{% elif mode == 'upcoming' %}Upcoming appointments{% else %}Schedule · {{ day|date:'d M Y' }} (Pakistan){% endif %}</h1>
+<p><a href="{% url 'appointment_schedule' %}">Today</a> · <a href="{% url 'appointment_schedule' %}?view=upcoming">Upcoming</a> · <a href="{% url 'patient_create' %}">Register new patient</a></p>
+{% if patient %}<p><a class="button" href="{% url 'appointment_new' patient.pk %}">Book appointment</a> <a href="{% url 'appointment_new' patient.pk %}?walkin=1">Register walk-in</a></p>{% else %}<form method="get"><label for="schedule-date">Choose date</label><input id="schedule-date" type="date" name="date" value="{{ day|date:'Y-m-d' }}"><button>Show date</button></form><p><a href="?date={{ previous_day|date:'Y-m-d' }}">Previous day</a> · <a href="?date={{ next_day|date:'Y-m-d' }}">Next day</a> · <a href="{% url 'patients' %}">Find a patient to book</a></p>{% endif %}
+</section>
+{% for appointment in page %}{% include 'workflow/appointment_row.html' %}{% empty %}<section class="panel"><p>No appointments in this view. Find a patient by phone to book or register a walk-in.</p></section>{% endfor %}
+<p>Page {{ page.number }} of {{ page.paginator.num_pages }} {% if page.has_previous %}<a href="?date={{ day|date:'Y-m-d' }}&amp;view={{ mode }}&amp;page={{ page.previous_page_number }}">Previous</a>{% endif %} {% if page.has_next %}<a href="?date={{ day|date:'Y-m-d' }}&amp;view={{ mode }}&amp;page={{ page.next_page_number }}">Next</a>{% endif %}</p>
+{% endblock %}

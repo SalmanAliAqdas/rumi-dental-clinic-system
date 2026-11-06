@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load static %}
 {% block content %}
 <div class="page-heading">
 <div>
@@ -34,18 +35,8 @@
 {% endif %}
 </section>
 </div>
-<aside>
-<section class="panel empty-panel">
-<span class="badge">PHASE 4</span>
-<h2>Today's appointments</h2>
-<p class="muted">Scheduling is not implemented yet.</p>
-</section>
-<section class="panel empty-panel">
-<span class="badge green">PHASE 4</span>
-<h2>Personal tasks</h2>
-<p class="muted">Your task workspace will appear here.</p>
-</section>
-<div class="trial-note">Trial use only. Backup, restore and clinic verification must be completed before entering real patient data.</div>
+<aside><div id="daily-panels" data-url="{% url 'daily_panel' %}" data-expiry-seconds="{{ panel_expiry }}">{% include 'workflow/panels.html' %}</div><script src="{% static 'dashboard-panels.js' %}" defer></script>
+<div class="trial-note">Fictional data only until backup/restore and clinic trials pass.</div>
 </aside>
 </div>
 {% endblock %}

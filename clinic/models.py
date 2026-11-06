@@ -63,3 +63,5 @@ from .clinical_models import (MedicalReview, Visit, VisitAmendment, Procedure, T
     PlanItem, PlanRevision, PerformedWork, ToothObservation, Attachment)
 
 from .finance_models import (FinancialLock, TreatmentAccount, LedgerEntry, Schedule, Installment, Allocation, CorrectionRequest, AccountEvent, Expense)
+
+from .workflow_models import (WorkflowLock, Appointment, PersonalTask, ClinicPrintSettings, PrescriberProfile, Prescription, PrescriptionCorrection, WorkflowEvent)

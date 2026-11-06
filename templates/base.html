@@ -36,6 +36,8 @@
 <a href="{% url 'finance_outstanding' %}">Outstanding payments</a>
 <a href="{% url 'finance_today' %}">Today's collections</a>
 {% if user.is_superuser %}<a href="{% url 'finance_reports' %}">Financial reports</a>{% endif %}
+<a href="{% url 'appointment_schedule' %}">Schedule</a><a href="{% url 'personal_tasks' %}">My tasks</a>
+{% if user.is_superuser %}<a href="{% url 'clinic_print_settings' %}">Clinic print details</a>{% endif %}
 <span class="local-status">● Local workspace</span>
 </nav>
 {% endif %}
@@ -48,6 +50,6 @@
 {% block content %}
 {% endblock %}
 </main>
-<footer>Rumi Dental Care · Phase 3 trial build · Fictional patient data only</footer>
+<footer>Rumi Dental Care · Phase 4 trial build · Fictional patient data only</footer>
 </body>
 </html>

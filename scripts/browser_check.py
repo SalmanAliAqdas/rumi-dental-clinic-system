@@ -12,6 +12,7 @@ from urllib.request import urlopen
 from urllib.parse import urlsplit
 from playwright.sync_api import sync_playwright
 from finance_browser import check_finance
+from workflow_browser import check_workflow
 
 def check_clinical(page, context, base, password, image_path, database, width):
     page.get_by_role('link', name='+ Start Visit', exact=True).click()
@@ -155,7 +156,7 @@ def run():
                     page.get_by_role('link', name='Find a patient', exact=True).click()
                     page.get_by_label('Phone number, patient name or patient number').fill(alternate)
                     page.get_by_role('button', name='Find patient', exact=True).click()
-                    page.get_by_role('link').filter(has_text=name).click()
+                    page.locator('a.patient-row').filter(has_text=name).click()
                     assert page.url == profile_url
                     page.get_by_role('link', name='Edit patient', exact=True).click()
                     page.get_by_label('Occupation').fill('Fictional browser test')
@@ -168,6 +169,7 @@ def run():
                     assert page.request.get(base + '/accounts/').status == expected
                     assert page.request.get(base + '/audit/').status == expected
                     check_finance(page, base, profile_url, username, width, ROOT)
+                    check_workflow(page, context, base, profile_url, username, width, ROOT, env['RUMI_BROWSER_PASSWORD'])
                     if username == 'browserdoctor':
                         check_clinical(page, context, base, env['RUMI_BROWSER_PASSWORD'], image_path, Path(data_dir) / 'clinic.sqlite3', width)
                     page.get_by_role('button', name='Log out', exact=True).click()

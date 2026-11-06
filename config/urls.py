@@ -1,10 +1,34 @@
 from django.urls import path
 from django.contrib.auth.views import LogoutView
 from clinic import finance_views as finance
+from clinic import workflow_views as workflow
 from clinic import views
 from clinic import clinical_views as clinical
 
 urlpatterns = [
+    path('schedule/', workflow.schedule, name='appointment_schedule'),
+    path('dashboard/panels/', workflow.daily_panel, name='daily_panel'),
+    path('tasks/', workflow.tasks, name='personal_tasks'),
+    path('tasks/new/', workflow.task_edit, name='task_new'),
+    path('tasks/<int:task_id>/', workflow.task_edit, name='task_edit'),
+    path('tasks/<int:task_id>/<str:action>/', workflow.task_edit, name='task_action'),
+    path('print-settings/', workflow.print_settings, name='clinic_print_settings'),
+    path('my-clinician-details/', workflow.print_settings, {'personal': True}, name='prescriber_settings'),
+    path('patients/<int:pk>/appointments/', workflow.schedule, name='patient_appointments'),
+    path('patients/<int:pk>/appointments/new/', workflow.appointment_edit, name='appointment_new'),
+    path('patients/<int:pk>/appointments/<int:appointment_id>/', workflow.appointment_detail, name='appointment_detail'),
+    path('patients/<int:pk>/appointments/<int:appointment_id>/edit/', workflow.appointment_edit, name='appointment_edit'),
+    path('patients/<int:pk>/appointments/<int:appointment_id>/status/', workflow.appointment_status, name='appointment_status'),
+    path('patients/<int:pk>/appointments/<int:appointment_id>/visit/', workflow.appointment_visit, name='appointment_visit'),
+    path('patients/<int:pk>/appointments/<int:appointment_id>/print/', workflow.appointment_print, name='appointment_print'),
+    path('patients/<int:pk>/appointments/<int:appointment_id>/reminder/', workflow.reminder, name='appointment_reminder'),
+    path('patients/<int:pk>/prescriptions/', workflow.prescriptions, name='prescriptions'),
+    path('patients/<int:pk>/prescriptions/new/', workflow.prescription_edit, name='prescription_new'),
+    path('patients/<int:pk>/prescriptions/<int:rx_id>/', workflow.prescription_detail, name='prescription_detail'),
+    path('patients/<int:pk>/prescriptions/<int:rx_id>/edit/', workflow.prescription_edit, name='prescription_edit'),
+    path('patients/<int:pk>/prescriptions/<int:rx_id>/issue/', workflow.prescription_issue, name='prescription_issue'),
+    path('patients/<int:pk>/prescriptions/<int:rx_id>/correct/', workflow.prescription_correct, name='prescription_correct'),
+    path('patients/<int:pk>/prescriptions/<int:rx_id>/print/', workflow.prescription_print, name='prescription_print'),
     path('finance/outstanding/', finance.outstanding, name='finance_outstanding'),
     path('finance/today/', finance.today_collections, name='finance_today'),
     path('finance/reports/', finance.reports, name='finance_reports'),

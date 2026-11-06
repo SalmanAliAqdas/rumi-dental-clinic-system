@@ -1,0 +1,9 @@
+﻿<div data-business-date="{{ business_day|date:'Y-m-d' }}">
+<section class="panel"><h2>Today &amp; next · {{ business_day|date:'d M Y' }}</h2><p class="hint">Pakistan time. Arrivals first; unresolved past bookings stay below.</p><p><a href="{% url 'dashboard' %}">Refresh today &amp; tasks</a> · <a href="{% url 'appointment_schedule' %}">Full schedule</a></p>
+<h3>Current patient</h3>{% if current_appointment %}{% include 'workflow/appointment_row.html' with appointment=current_appointment %}{% else %}<p>No patient marked In Treatment.</p>{% endif %}
+<h3>Who's next</h3>{% if next_appointment %}{% include 'workflow/appointment_row.html' with appointment=next_appointment %}{% else %}<p>No arrived patient or further scheduled booking today.</p>{% endif %}</section>
+{% if arrived_queue %}<section class="panel"><h2>Arrived queue</h2>{% for a in arrived_queue %}<p>{{ a.patient.full_name }} · Arrived {{ a.arrived_at|date:'H:i' }} · <a href="{% url 'appointment_detail' a.patient_id a.pk %}">Open appointment</a></p>{% endfor %}</section>{% endif %}
+<section class="panel"><h2>Today's remaining appointments</h2>{% for appointment in remaining_appointments %}{% include 'workflow/appointment_row.html' %}{% empty %}<p>No remaining appointments today.</p>{% endfor %}</section>
+<section class="panel"><h2>Overdue unresolved bookings</h2>{% for appointment in overdue_appointments %}{% include 'workflow/appointment_row.html' %}{% empty %}<p>No overdue scheduled bookings.</p>{% endfor %}</section>
+<section class="panel"><h2>Your unfinished tasks</h2><p><a href="{% url 'task_new' %}">Add personal task</a> · <a href="{% url 'personal_tasks' %}">All your tasks / history</a></p>{% for task in personal_tasks %}<p><a href="{% url 'task_edit' task.pk %}">{{ task.title }}</a> · {{ task.status }}{% if task.due_at %} · {{ task.due_at|date:'d M Y H:i' }}{% endif %}</p>{% empty %}<p>No unfinished personal tasks.</p>{% endfor %}</section>
+</div>

@@ -1,4 +1,4 @@
-# Rumi Dental Care — Phase 3 trial
+# Rumi Dental Care — Phase 4 trial
 
 Private, offline-first patient management for one dental clinic and one dentist in Lahore. The workflow is phone → matching patients → individual profile → dated visit → clinical history, treatment stages and private attachments. No online deployment, paid services, CDN assets or internet calls are used during everyday operation.
 
@@ -185,7 +185,7 @@ Every patient route checks authentication and the relevant Django permission on 
 
 Search uses same-origin POST, paginates at 20 results and requires four digits for partial phone queries (two characters for names/numbers). Canonical E.164 phone and WhatsApp columns have indexes for exact lookup. Substring searches can scan rows; realistic-volume performance must be evaluated during the clinic trial. Full phone matching searches both primary phone and WhatsApp. Numbers are not unique across patients. Patient numbers are immutable, unique opaque references; they are not an authorization mechanism.
 
-Patient responses have private/no-store cache controls, a same-origin referrer policy and restrictive same-origin CSP headers. Ordinary Django request/access logs are suppressed to avoid retaining URLs or patient terms. The audit database stores actor, patient/object references, action and timestamp, never copies of clinical text. It records clinical changes, completion/amendments, medical updates, treatment-plan changes and attachment upload/access. Dated medical snapshots, plan revisions and completed-visit amendments retain their clinical context in clinical tables. Trusted direct database/ORM maintenance can bypass application restrictions: this is **not tamper-proof**. Neither SQLite, uploaded originals nor the secret file is encrypted by this application. Prescriptions, appointments and complete backup/restore remain pending. Financial reports and CSV export are Owner-only.
+Patient responses have private/no-store cache controls, a same-origin referrer policy and restrictive same-origin CSP headers. Ordinary Django request/access logs are suppressed to avoid retaining URLs or patient terms. The audit database stores actor, patient/object references, action and timestamp, never copies of clinical text. It records clinical changes, completion/amendments, medical updates, treatment-plan changes and attachment upload/access. Dated medical snapshots, plan revisions and completed-visit amendments retain their clinical context in clinical tables. Trusted direct database/ORM maintenance can bypass application restrictions: this is **not tamper-proof**. Neither SQLite, uploaded originals nor the secret file is encrypted by this application. Full backup/restore remains pending. Financial reports and CSV export are Owner-only.
 
 Safe local diagnostics are bounded to a 256 KiB file plus three rotated files at `runtime/development/diagnostics/events.log`. Only a generated event ID, time, fixed category/severity, allowlisted exception type and application source locations are recorded. No exception message, request fields, passwords, patient text, SQL or locals are formatted. Generic 500 responses provide an `X-Rumi-Error-ID` header without showing details. A logging failure never falls back to printing the unsafe event.
 
@@ -237,7 +237,7 @@ The helper copies the consistent SQLite database with its matching secret to ign
 
 Generated originals live at `runtime/development/attachments/originals/`; replaceable image thumbnails at `attachments/thumbnails/`; temporary upload files at `upload-tmp/`. Uploads are limited to 10 MiB, images to 10,000 pixels per side/25 million pixels, and passive PDFs to 200 pages with bounded structure checks. Extension and actual content must agree; active/encrypted/malformed PDFs and unsupported formats are rejected. All original, thumbnail and preview routes require authentication and permission; there is no public media route. Missing files produce a safe unavailable response while their metadata is retained. Upload failures clean up newly created files; power-loss orphan reconciliation and full restore testing remain future work. Future complete backups must capture the database **and every uploaded original together**, plus needed configuration and a verified manifest.
 
-Phase 3 is implemented below. Phase 4 requires separate authorization. See [requirements](docs/REQUIREMENTS.md), [roadmap](docs/ROADMAP.md) and [progress](docs/PROGRESS.md).
+Phases 3 and 4 are implemented below. Phase 5 requires separate authorization. See [requirements](docs/REQUIREMENTS.md), [roadmap](docs/ROADMAP.md) and [progress](docs/PROGRESS.md).
 
 
 ## Phase 3: charges, payments and installments
@@ -274,4 +274,42 @@ Migrations `0004` and `0005` add finance tables and the serialization row. Befor
 
 `manage.py test` now includes financial arithmetic, role boundaries, refunds/corrections, schedules, reports and two independent file-backed SQLite posting processes. `scripts/browser_check.py` also runs the entire example for both roles at desktop/narrow widths with isolated fictional data. Existing launchers/shortcuts still select `runtime/development`. See `docs/PROGRESS.md` for actual results. Runtime dependencies are unchanged; development browser tooling is optional.
 
-Phase 3 stops here. Appointments, tasks and prescriptions remain Phase 4. Continue fictional-data use until backup/restore and clinic trials pass. Large-volume financial query performance, physical receipt/printer testing and power-loss/recovery trials remain future verification; this is a single-workstation trial.
+Phase 3 financial rules remain unchanged by Phase 4. Continue fictional-data use until backup/restore and clinic trials pass. Large-volume financial query performance, physical receipt/printer testing and power-loss/recovery trials remain future verification; this is a single-workstation trial.
+
+
+## Phase 4: appointments, next patient, personal tasks and prescriptions
+
+Use the existing desktop shortcut to open the local app. Phone search remains central. Each search result and patient profile now offers **Book appointment** and **Register walk-in**; Schedule also links to new-patient registration. Patient Appointments shows the complete booking history. Schedule provides today, previous/next day, chosen date and upcoming views, in Pakistan time.
+
+Enter start/end, purpose and optional notes. End must be after start. Active Scheduled/Arrived/In Treatment bookings are checked for overlap under a SQLite write reservation; touching end/start times are allowed. An overlap first blocks saving with a clear warning. To save intentionally, review the schedule, check the explicit overlap confirmation and provide a reason. Cancelled/No-show/Completed bookings do not block times. Rescheduling, status changes, walk-in arrival and explicit queue ordering retain actor/time/reason and before/after details. No status changes automatically when time passes. Single-dentist operation permits only one In Treatment appointment at a time. Reactivating a terminal booking checks overlaps again.
+
+The dashboard right panels show current patient, **Who's next**, arrived queue, today's remaining bookings and overdue unresolved bookings (including earlier days). Arrived patients come first by queue ordering time, initially their arrival time, then arrival time and ID for ties. An explicit queue-time adjustment on Change Status requires a reason and is retained in history. Otherwise next means the earliest not-yet-past Scheduled booking today. Past Scheduled bookings remain separately overdue until a person changes their status. No-show and cancellation are explicit decisions.
+
+**Mark Arrived**, **Start Visit**, **Change Status** and **Open Patient** are available from the dashboard/booking. Start Visit requires review of medical history/alerts, optionally links an existing editable same-patient visit, and otherwise creates a visit once. Repeated/concurrent requests reuse that appointment's link. Appointment completion never completes, edits or signs clinical notes. The original walk-in clinical Start Visit remains available separately.
+
+Use **Refresh today & tasks** for current data. A small local script checks the Pakistan date every 15 seconds and refreshes only the panels at midnight, preserving phone-search input. It does not continually poll the server or extend an idle session. A failed/unauthorized refresh clears old panel data; a local idle-expiry timer clears panels and returns to sign-in. Normal server session/permission checks still guard every refresh. With JavaScript disabled, use the explicit Refresh/Today link to load the current day. Narrow layouts put the panels below the main workspace.
+
+**My tasks** is private to the signed-in creator, including from Owner accounts. Add/edit notes and optional due time, complete or reopen. Unfinished tasks carry forward with original dates; completed history remains available separately. Tasks are not appointments. Revision checks and submission tokens prevent lost updates and duplicate writes. No recurring jobs or external notifications are implemented.
+
+### Prescriptions and print identity
+
+Open patient **Prescriptions**. Only an active account in the fixed Doctor role with clinical creation permission can draft/issue; Owner-only accounts can view/print but cannot prescribe or choose another person's identity. A dual-role Owner/Doctor must explicitly have the Doctor group and still prescribes only as the signed-in user. Under **Your clinician print details**, enter your actual name and any actual optional qualifications/registration/contact; nothing is invented. Owner configures clinic name/address/contact under **Clinic print details**. No logo, signature or registration defaults are supplied.
+
+Doctor drafts contain date, optional same-patient visit, medication name, strength/form, dose, route, frequency, duration, quantity/instructions, advice and follow-up. All text is entered/reviewed by Doctor. Drafts can remain incomplete. Save a draft, then choose Edit draft/add medication to get another blank row (maximum 20); rows can be removed explicitly. Issue requires medication name/dose/route/frequency/duration for each row, your own clinician print details and explicit patient/allergy/content/identity confirmation. No doses, diagnoses or advice are generated or recommended.
+
+Issuance retains a snapshot of patient identity/age context, clinician, clinic details, date and all content. Later patient/config edits do not change that print snapshot. Issued originals cannot be edited through the app. **Void / replace with reason** retains the original and creates an explicit linked void record, optionally with a replacement draft under the correcting signed-in Doctor's identity. The original is marked void immediately; a replacement needs its own review/issuance. Both remain in patient history. Draft and void print layouts are prominently labelled. Appointment and prescription prints are standalone white documents containing only the selected patient/document. Use browser Print / Save as PDF; no PDF service or invented signature is used.
+
+### Manual reminders
+
+Prepare Reminder shows a short clinic-name/date/time reminder without patient name, purpose, diagnosis, treatment, money or attachments. Review/copy it. The saved validated WhatsApp number is preferred; if absent, explicitly confirm the primary phone before enabling the link. **Open WhatsApp** is an explicit external navigation requiring internet; the app itself sends nothing. Merely viewing/opening does not log a send or delivery. Only a user's explicit Copied or Manually sent confirmation is recorded, with actor/time/recipient and appointment time. It never represents a delivery receipt. Core operation remains offline.
+
+### Try the new dashboard with fictional data
+
+1. Doctor: find a fictional patient by phone, choose Book appointment, set a future start/end and purpose, save, then open Dashboard.
+2. Mark Arrived and give a reason. Confirm the patient moves into the arrival queue. Start Visit, review the alerts and save; retrying the appointment link reopens the same visit.
+3. Open Prescriptions, configure your actual clinician print details, draft fictional medication text and save. Review and issue with explicit confirmation; open the white print preview and browser Print / Save as PDF.
+4. Return to the appointment, change status to Completed with a reason. Confirm clinical notes remain an independently editable In Progress visit.
+5. Add/complete a personal task; use Completed history to reopen it. Log in as another user and confirm that task is absent and its direct URL is denied.
+6. Owner-only: view/print the prescription and historical financial reports; prescription creation/issuance is denied. Doctor financial report/export restrictions remain unchanged.
+
+Migrations 0006-0007 are additive. The known clinic server was paused before a verified consistent database/secret safety copy; every pre-existing row and uploaded-file/secret fingerprint was compared after applying only to `runtime/development`. This is still not Phase 5 backup/restore. Verification results and exact limitations are in `docs/PROGRESS.md`. Stop after Phase 4; continue fictional data until recovery and clinic trials pass.

@@ -73,7 +73,8 @@ class ClinicLoginView(LoginView):
 @clinic_required()
 @require_GET
 def dashboard(request):
-    return render(request, 'dashboard.html', {'patient_count': Patient.objects.count()})
+    from .workflow_services import queue_context
+    return render(request, 'dashboard.html', {'patient_count': Patient.objects.count(), 'panel_expiry': request.session.get_expiry_age(), **queue_context(request.user)})
 
 @clinic_required()
 @require_http_methods(['GET', 'POST'])

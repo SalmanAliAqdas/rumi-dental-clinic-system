@@ -7,5 +7,6 @@
 </div>
 <span class="phone">{{ patient.phone }} →</span>
 </a>
+<p><a href="{% url 'appointment_new' patient.pk %}">Book appointment for {{ patient.full_name }}</a> - <a href="{% url 'appointment_new' patient.pk %}?walkin=1">Register walk-in</a></p>
 {% endfor %}
 </div>
