@@ -67,6 +67,7 @@ def main():
         assert fixture.is_relative_to(runtime.resolve())
         link = fixture / '.venv'
         process = None
+        detached = None
         log = None
         try:
             for folder in ['clinic', 'config', 'templates', 'static', 'scripts']:
@@ -96,6 +97,13 @@ def main():
             assert result.returncode == 0 and str(database) in result.stdout, result.stdout + result.stderr
             assert fingerprint(database) == before_fixture
             print('PASS: real CMD resolves a path containing spaces from another working directory, overrides wrong terminal settings, and checks migrations without modifying the database.', flush=True)
+            update = subprocess.run([str(link / 'Scripts/python.exe'), str(fixture / 'scripts/local_update.py'), '--data-dir', str(data), '--apply'], cwd=ROOT.parent, env=environment, capture_output=True, text=True, timeout=30)
+            assert update.returncode == 0 and 'Complete local safety backup verified' in update.stdout, update.stdout + update.stderr
+            assert fingerprint(database) == before_fixture
+            manifests=list((fixture / 'runtime/phase6-safety').glob('*/safety-manifest.json'))
+            assert len(manifests)==1
+            print('PASS: explicit local update creates verified complete safety backup before migration checks, preserves existing data and supports spaces.',flush=True)
+
             with closing(sqlite3.connect(database)) as connection:
                 rows = connection.execute("SELECT app,name,applied FROM django_migrations WHERE app='clinic'").fetchall()
                 with connection:
@@ -128,11 +136,38 @@ def main():
             print('PASS: another Rumi checkout/database on the same port is rejected, not reused or killed.', flush=True)
             # This is the fixture process tree created above, never an arbitrary
             # port owner or the user's real server. Close the complete CMD/venv tree.
-            subprocess.run(['taskkill', '/PID', str(process.pid), '/T', '/F'], check=True, capture_output=True)
+            result = run_cmd(launcher, '--stop')
+            assert result.returncode == 0 and 'stopped safely' in result.stdout, result.stdout + result.stderr
             process.wait(timeout=10)
             process = None
             log.close()
             log = None
+            result = run_cmd(launcher, '--stop')
+            assert result.returncode == 0 and 'already stopped' in result.stdout
+            # A stale control file must not stop a newly started instance.
+            old_state = json.loads((data / 'local-server.json').read_text())
+            detached = subprocess.Popen([str(link / 'Scripts/pythonw.exe'), str(fixture / 'scripts/trial_launcher.py'), '--serve'], cwd=fixture, creationflags=subprocess.CREATE_NO_WINDOW)
+            deadline = time.monotonic() + 20
+            while time.monotonic() < deadline and not ready(fixture): time.sleep(.1)
+            assert ready(fixture)
+            state = json.loads((data / 'local-server.json').read_text())
+            assert state['token'] != old_state['token']
+            (data / 'local-stop.json').write_text(json.dumps({'token':old_state['token']}))
+            time.sleep(.4)
+            assert ready(fixture) and detached.poll() is None
+            # An active job lease delays shutdown, then Stop completes after release.
+            from clinic.backups.locks import lease, lock_path
+            with lease(lock_path(data, 'job')):
+                stopper = subprocess.Popen([str(link / 'Scripts/python.exe'), str(fixture / 'scripts/trial_launcher.py'), '--stop'], cwd=fixture, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+                deadline = time.monotonic() + 10
+                while time.monotonic() < deadline:
+                    if json.loads((data / 'local-server.json').read_text())['status'].startswith('waiting'): break
+                    time.sleep(.1)
+                assert detached.poll() is None and stopper.poll() is None
+            out, err = stopper.communicate(timeout=15)
+            assert stopper.returncode == 0, out + err
+            detached.wait(timeout=15)
+            print('PASS: orderly and repeated Stop, hidden pythonw restart, stale instance token refusal and active backup lease drain.', flush=True)
 
             class UnrelatedService(BaseHTTPRequestHandler):
                 def do_GET(self):
@@ -151,11 +186,19 @@ def main():
                     result = run_cmd(launcher, '--no-browser')
                     assert result.returncode != 0 and 'identity cannot be verified' in result.stderr
                     assert thread.is_alive()
+                    result = run_cmd(launcher, '--stop')
+                    assert result.returncode != 0 and thread.is_alive()
                 finally:
                     conflict.shutdown()
                     thread.join(timeout=2)
             print('PASS: unrelated occupied port (even with a copied app name) is rejected without killing it or changing ports.', flush=True)
         finally:
+            if detached is not None and detached.poll() is None:
+                state_file = fixture / 'runtime/development/local-server.json'
+                if state_file.exists():
+                    state = json.loads(state_file.read_text())
+                    (state_file.parent / 'local-stop.json').write_text(json.dumps({'token': state['token']}))
+                    detached.wait(timeout=15)
             if process is not None and process.poll() is None:
                 subprocess.run(['taskkill', '/PID', str(process.pid), '/T', '/F'], capture_output=True)
                 process.wait(timeout=10)

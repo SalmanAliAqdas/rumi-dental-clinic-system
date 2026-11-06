@@ -4,7 +4,8 @@ $ErrorActionPreference = 'Stop'
 function Install-RumiDesktopShortcut {
     param(
         [Parameter(Mandatory = $true)][string]$ProjectDirectory,
-        [Parameter(Mandatory = $true)][string]$DesktopDirectory
+        [Parameter(Mandatory = $true)][string]$DesktopDirectory,
+        [switch]$Stop
     )
 
     $project = (Resolve-Path -LiteralPath $ProjectDirectory).ProviderPath
@@ -13,7 +14,15 @@ function Install-RumiDesktopShortcut {
     if (-not (Test-Path -LiteralPath $launcher -PathType Leaf)) {
         throw 'The existing Start Rumi Dental Care.cmd launcher is missing. No shortcut was created.'
     }
-    $destination = Join-Path $desktop 'Rumi Dental Care.lnk'
+    $targetPython = Join-Path $project '.venv\Scripts\pythonw.exe'
+    $entry = Join-Path $project 'scripts\desktop.pyw'
+    if (-not (Test-Path -LiteralPath $targetPython) -or -not (Test-Path -LiteralPath $entry)) {
+        throw 'Project pythonw.exe or desktop.pyw is missing. Complete local dependency setup first.'
+    }
+    $arguments = '"' + $entry + '"'
+    $shortcutName = 'Rumi Dental Care.lnk'
+    if ($Stop) { $arguments += ' --stop'; $shortcutName = 'Stop Rumi Dental Care.lnk' }
+    $destination = Join-Path $desktop $shortcutName
     $temporary = Join-Path $desktop ('.RumiDesktopShortcut-' + [Guid]::NewGuid().ToString('N') + '.lnk')
     $shell = $null
     $existing = $null
@@ -29,10 +38,11 @@ function Install-RumiDesktopShortcut {
             $existing = $shell.CreateShortcut($destination)
             $oldTarget = [Environment]::ExpandEnvironmentVariables($existing.TargetPath)
             if ([string]::IsNullOrWhiteSpace($oldTarget) -or -not [string]::Equals(
-                [IO.Path]::GetFullPath($oldTarget), $launcher, [StringComparison]::OrdinalIgnoreCase)) {
+                [IO.Path]::GetFullPath($oldTarget), $launcher, [StringComparison]::OrdinalIgnoreCase) -and -not [string]::Equals(
+                [IO.Path]::GetFullPath($oldTarget), $targetPython, [StringComparison]::OrdinalIgnoreCase)) {
                 throw ('Conflict: the existing Rumi Dental Care shortcut targets another location: ' + $oldTarget + '. It was preserved. Confirm its installation before renaming/removing that shortcut yourself and rerunning setup.')
             }
-            if (-not [string]::IsNullOrWhiteSpace($existing.Arguments)) {
+            if (-not [string]::IsNullOrWhiteSpace($existing.Arguments) -and $existing.Arguments -ne $arguments) {
                 throw 'Conflict: the existing shortcut has custom arguments. It was preserved; review it locally before replacing it. Its arguments are not displayed.'
             }
             $disposition = 'Updated same installation'
@@ -58,16 +68,16 @@ function Install-RumiDesktopShortcut {
         $iconLocation = $iconFile + ',0'
         # Start from a new file so old arguments/elevation flags cannot carry over.
         $shortcut = $shell.CreateShortcut($temporary)
-        $shortcut.TargetPath = $launcher
+        $shortcut.TargetPath = $targetPython
         $shortcut.WorkingDirectory = $project
-        $shortcut.Arguments = ''
+        $shortcut.Arguments = $arguments
         $shortcut.WindowStyle = 1
-        $shortcut.Description = 'Rumi Dental Care - Phase 1 local trial. Sign in with your existing clinic account.'
+        $shortcut.Description = 'Rumi Dental Care - local background application. Existing clinic accounts.'
         $shortcut.IconLocation = $iconLocation
         $shortcut.Save()
         $verified = $shell.CreateShortcut($temporary)
-        if ($verified.TargetPath -ne $launcher -or $verified.WorkingDirectory -ne $project -or
-            $verified.Arguments -ne '' -or $verified.WindowStyle -ne 1 -or
+        if ($verified.TargetPath -ne $targetPython -or $verified.WorkingDirectory -ne $project -or
+            $verified.Arguments -ne $arguments -or $verified.WindowStyle -ne 1 -or
             $verified.IconLocation -ne $iconLocation) {
             throw 'Shortcut verification failed; the existing desktop entry was not replaced.'
         }
@@ -79,7 +89,7 @@ function Install-RumiDesktopShortcut {
         [pscustomobject]@{
             Result = $disposition
             Shortcut = $destination
-            Target = $launcher
+            Target = $targetPython
             WorkingDirectory = $project
             Icon = $iconLocation
             WindowStyle = 1
@@ -105,5 +115,6 @@ if ($MyInvocation.InvocationName -ne '.') {
         throw 'Windows did not return an available Desktop folder. Nothing was created; check Desktop/OneDrive availability.'
     }
     Install-RumiDesktopShortcut -ProjectDirectory $PSScriptRoot -DesktopDirectory $actualDesktop | Format-List
-    Write-Host 'Double-click Rumi Dental Care on your desktop, then sign in. Keep the server console open; Ctrl+C stops it.'
+    Install-RumiDesktopShortcut -ProjectDirectory $PSScriptRoot -DesktopDirectory $actualDesktop -Stop | Format-List
+    Write-Host 'Start: Rumi Dental Care. Stop: Stop Rumi Dental Care. Browser closure does not stop the background app.'
 }

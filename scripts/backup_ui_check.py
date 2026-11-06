@@ -20,7 +20,7 @@ def run():
         subprocess.run([str(PYTHON),'-c',code],cwd=ROOT,env=env,check=True)
         with socket.socket() as s:s.bind(('127.0.0.1',0));port=s.getsockname()[1]
         base=f'http://127.0.0.1:{port}'
-        process=subprocess.Popen([str(PYTHON),'manage.py','runserver',f'127.0.0.1:{port}','--noreload','--insecure'],cwd=ROOT,env=env,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
+        process=subprocess.Popen([str(PYTHON),'manage.py','serve_clinic','--port',str(port)],cwd=ROOT,env=env,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
         try:
             for _ in range(100):
                 try:
@@ -46,6 +46,10 @@ def run():
                         raise
                     context.close()
                 browser.close()
-        finally:process.terminate();process.wait(timeout=15)
+        finally:
+            import json
+            state=json.loads((data/'local-server.json').read_text())
+            (data/'local-stop.json').write_text(json.dumps({'token':state['token']}))
+            process.wait(timeout=15)
 
 if __name__=='__main__':run()

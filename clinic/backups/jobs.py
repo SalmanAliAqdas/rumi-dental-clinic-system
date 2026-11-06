@@ -14,6 +14,8 @@ from .dpapi import protect_password,read_password
 
 PK=ZoneInfo('Asia/Karachi')
 _volatile_failures={}
+_worker_condition=threading.Condition()
+_workers={}
 KINDS={'local':'Saved to local folder','external':'Saved to external folder','gdrive':'Saved to Google Drive folder'}
 
 
@@ -188,7 +190,7 @@ def run_job(data,identifier,password):
                 with verified_package(job['package'],password,work,'backup' if job['kind']=='restore_preview' else None) as (_,manifest):
                     summary={k:manifest[k] for k in ('backup_id','created_at','app_version','kind','schema_version','row_counts')}
                     summary['upgrade_required']=manifest.get('upgrade_required',False)
-                    update_job(data,job,status='completed',stage='Verified without replacing working data',preview=summary)
+                update_job(data,job,status='completed',stage='Verified without replacing working data',preview=summary)
                 return
             config=load_config(data)
             if not config['installation_id']:config=save_config(data,job['actor_id'],{},config['revision'])
@@ -262,9 +264,31 @@ def request_job(data,actor,kind,password,token,package=None,daily_slot=None,back
             if not candidate.is_file() or candidate.suffix not in ('.rumibak','.rumiexport'):raise BackupError('Select an existing encrypted .rumibak/.rumiexport package path.')
             job['package']=str(candidate.resolve())
         atomic_json(path,job)
-    if background:threading.Thread(target=run_job,args=(Path(data),identifier,password),daemon=True,name='rumi-backup-job').start()
+    if background:
+        key=str(Path(data).resolve())
+        def worker():
+            try:run_job(Path(data),identifier,password)
+            finally:
+                with _worker_condition:
+                    _workers[key].discard(threading.current_thread())
+                    if not _workers[key]:_workers.pop(key,None)
+                    _worker_condition.notify_all()
+        thread=threading.Thread(target=worker,daemon=True,name='rumi-backup-job')
+        with _worker_condition:
+            _workers.setdefault(key,set()).add(thread)
+            try:thread.start()
+            except Exception:
+                _workers[key].discard(thread)
+                raise
     else:run_job(data,identifier,password)
     return get_job(data,identifier)
+
+
+def wait_for_jobs(data):
+    """Called after request/scheduler admission stops; includes not-yet-leased workers."""
+    key=str(Path(data).resolve())
+    with _worker_condition:
+        while _workers.get(key):_worker_condition.wait(.2)
 
 def scheduler_tick(data):
     config=load_config(data)

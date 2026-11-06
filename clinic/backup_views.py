@@ -28,22 +28,24 @@ def form_page(request,form,title,callback,**context):
 @require_GET
 def centre(request):
     config=jobs.load_config(data_dir());destinations=[]
+    history=jobs.history(data_dir())
     for d in config['destinations']:
         row=dict(d)
         try:jobs.destination_folder(d['folder'],data_dir());row['available']=True
         except (OSError,BackupError):row['available']=False
-        successes=[(j,r) for j in jobs.history(data_dir()) for r in j.get('results',[]) if r.get('destination_id')==d['id'] and r.get('status')=='verified' and j['kind']=='backup']
+        successes=[(j,r) for j in history for r in j.get('results',[]) if r.get('destination_id')==d['id'] and r.get('status')=='verified' and j['kind']=='backup']
         row['last_success']=successes[0][1]['verified_at'] if successes else None
         last=successes[0][1] if successes else None
         try:
             path=no_links(Path(last['folder'])/last['filename']) if last else None
             row['last_available']=bool(path and path.is_file() and path.stat().st_size==last['size'])
         except (OSError,BackupError):row['last_available']=False
-        row['overdue']=d['enabled'] and not jobs.completed_for(data_dir(),d['id'],jobs.due_slot(config)) if config['automatic'] else not bool(successes)
+        from datetime import datetime, timedelta
+        row['overdue']=d['enabled'] and (not successes or jobs.now()-datetime.fromisoformat(row['last_success']) > timedelta(days=1))
         destinations.append(row)
     warning=jobs.control(data_dir())/'scheduler-warning.json'
     return render(request,'backups/centre.html',dict(config=config,destinations=destinations,
-        page=Paginator(jobs.history(data_dir()),20).get_page(request.GET.get('page')),scheduler_warning=jobs.read_json(warning) if warning.exists() else None))
+        page=Paginator(history,20).get_page(request.GET.get('page')),scheduler_warning=jobs.read_json(warning) if warning.exists() else None))
 
 @clinic_required(owner=True)
 @require_http_methods(['GET','POST'])

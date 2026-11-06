@@ -20,3 +20,19 @@ jobs:
       - run: python manage.py check
       - run: python manage.py makemigrations --check --dry-run
       - run: python -m pip check
+      - run: python scripts/recovery_drill.py
+  windows:
+    runs-on: windows-latest
+    env:
+      DJANGO_SETTINGS_MODULE: config.settings
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - run: python -m venv .venv
+      - run: .\.venv\Scripts\python.exe -m pip install -r requirements.txt
+      - run: .\.venv\Scripts\python.exe manage.py test -v 1
+      - run: .\.venv\Scripts\python.exe scripts\check_windows_launchers.py
+      - run: powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts\check_desktop_shortcut.ps1
+      - run: .\.venv\Scripts\python.exe -m pip check

@@ -146,13 +146,13 @@ class FinanceTests(TestCase):
         r=self.client.post(self.url('corrections/'),dict(token=uuid4(),reason='Bad original',original=foreign.pk))
         self.assertEqual(r.status_code,400)
     def test_doctor_global_permissions_all_parameters(self):
-        for path in ['/finance/reports/','/finance/export/','/finance/expenses/new/','/finance/reports/?period=annual','/finance/today/?date=2020-01-01','/finance/today/?page=2','/finance/outstanding/?start=2020-01-01']:
+        for path in ['/finance/reports/','/finance/export/','/finance/expenses/new/','/finance/reports/?period=annual','/finance/today/?date=2020-01-01','/finance/today/?unknown=2','/finance/outstanding/?start=2020-01-01']:
             self.assertEqual(self.client.get(path).status_code,403,path)
         self.charge()
         r=self.client.get('/finance/outstanding/')
         self.assertNotIn('combined_balance',r.context)
         self.assertNotContains(r,'Combined balance')
-        for path in ['/finance/today/','/finance/outstanding/?filter=settled',self.url()]:self.assertEqual(self.client.get(path).status_code,200)
+        for path in ['/finance/today/','/finance/today/?page=2','/finance/outstanding/?filter=settled',self.url()]:self.assertEqual(self.client.get(path).status_code,200)
     def test_doctor_date_is_forced_today_even_raw_post(self):
         self.charge()
         r=self.client.post(self.url('entry/'),dict(token=uuid4(),kind='payment',amount='100',method='cash',received_at='2001-01-01T00:00'))

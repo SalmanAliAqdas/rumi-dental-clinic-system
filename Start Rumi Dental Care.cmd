@@ -5,6 +5,10 @@ if errorlevel 1 goto directory_error
 set "DJANGO_SETTINGS_MODULE=config.settings"
 set "RUMI_DATA_DIR=%~dp0runtime\development"
 if not exist "%~dp0.venv\Scripts\python.exe" goto python_error
+if "%~1"=="" (
+  start "" "%~dp0.venv\Scripts\pythonw.exe" "%~dp0scripts\desktop.pyw"
+  exit /b 0
+)
 "%~dp0.venv\Scripts\python.exe" "%~dp0scripts\trial_launcher.py" %*
 set "RUMI_LAUNCH_EXIT=%ERRORLEVEL%"
 if not "%RUMI_LAUNCH_EXIT%"=="0" pause

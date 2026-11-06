@@ -1,6 +1,6 @@
 # Confirmed requirements
 
-Private business software for Rumi Dental Care, Lahore, Pakistan: one branch, one dentist, no receptionist. Daily workflow: phone → matching patients → complete individual profile → today's visit → reliable retrieval years later. Windows offline operation comes first. Phases 1-5 are implemented as a fictional-data trial. Online deployment is a separate future stage.
+Private business software for Rumi Dental Care, Lahore, Pakistan: one branch, one dentist, no receptionist. Daily workflow: phone → matching patients → complete individual profile → today's visit → reliable retrieval years later. Windows offline operation comes first. Phases 1-6 are implemented as a fictional-data trial; operational sign-off remains manual. Online deployment is a separate future stage.
 
 ## Stack and local operation
 
@@ -142,3 +142,14 @@ Web restore requires Owner re-authentication and explicit confirmation but perfo
 Encrypted `.rumiexport` contains all business module rows with stable IDs/relationships, Unicode JSON, formula-neutralized CSV, field/FK dictionary, attachment mapping/files/checksums and export/schema timestamps. Password hashes, secret, session and throttle/DPAPI state are excluded. Decimal money uses fixed text. It is not a full disaster backup; no importer is supplied. Full restore retains credentials; migration export intentionally does not.
 
 All recovery checks use copies/isolated fictional fixtures; working clinic is never restored over during automated verification. Physical USB disconnection/cloud sync, native power loss, other-user DPAPI portability and representative-volume operational trials are not claimed verified. Final packaging/trial sign-off remains Phase 6; continue fictional data.
+
+
+## Phase 6 local packaging contract
+
+Normal Windows startup uses pinned Waitress 3.0.2 and WhiteNoise 6.12.0 on loopback with DEBUG=False. pythonw Start/Stop desktop entries have no persistent console. Start verifies the v2 signed checkout/runtime/interpreter identity (python/pythonw in one virtual environment are equivalent); Stop uses a per-run random control token and runtime leases, never PID killing. Requests/streaming responses and backup jobs drain before server lease release. Startup retains scheduler/diagnostics/security/recovery safeguards. Visible diagnostic startup remains available; no service/admin/autostart is configured.
+
+Explicit existing-directory setup/update checks Python 3.13/dependencies/migrations and refuses ambiguous selection. Updates create and verify a complete local database/secret/attachments/configuration safety snapshot before migrations with the server stopped. Source and runtime remain separate; no migration/secret/account initialization occurs in ordinary startup. Existing encrypted package format/schema compatibility is unchanged.
+
+Financial workspace summaries use six linear bulk reads with Decimal arithmetic; posting remains serialized and authoritative. Account pages, reports and exports retain role boundaries. Outstanding display loads patient/account objects only for its 20 visible rows; collections/expenses show 50 per page and report totals/export cover all selected records. Dashboard queues show at most 20 per section with full schedule navigation. Ordinary pages show a version/trial label without runtime paths; Owner backup status lists missing/overdue destinations and unrecorded operational recovery/manual checks honestly.
+
+Physical USB, second-laptop recovery, real cloud synchronization, printer output and Owner/Doctor workflow sign-off remain **User verification required**. Automatic tests cannot establish operational clinic readiness. Custom role editing, historical receivable snapshots and a migration-export importer are not delivered; no online hosting or extra phase is authorized here.

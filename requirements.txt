@@ -8,3 +8,5 @@ pypdf==6.21.4
 cryptography==50.0.2
 cffi==2.1.1
 pycparser==3.12
+waitress==3.0.2
+whitenoise==6.12.0

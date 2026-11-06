@@ -10,6 +10,7 @@
 <link rel="stylesheet" href="{% static 'clinic.css' %}">
 </head>
 <body>
+<a class="skip-link" href="#main">Skip to main content</a>
 <header class="topbar">
 <a class="brand" href="{% url 'dashboard' %}">Rumi<span>Dental Care</span>
 </a>
@@ -28,7 +29,7 @@
 {% if user.is_authenticated %}
 <nav class="main-nav" aria-label="Main navigation">
 <a href="{% url 'dashboard' %}">Dashboard</a>
-<a href="{% url 'patients' %}">Find a patient</a>
+<a class="phone-first" href="{% url 'patients' %}">Find a patient</a>
 <a href="{% url 'patient_create' %}">Register patient</a>
 {% if user.is_superuser %}
 <a href="{% url 'accounts' %}">Accounts</a>
@@ -50,6 +51,6 @@
 {% block content %}
 {% endblock %}
 </main>
-<footer>Rumi Dental Care · Phase 5 trial build · Fictional patient data only</footer>
+<footer>Rumi Dental Care · v6.0 local trial · Fictional patient data only</footer>
 </body>
 </html>

@@ -98,6 +98,59 @@ def active_schedule(account):
     if account.events.filter(action='schedule_invalidated', created_at__gt=schedule.created_at).exists(): return None
     return schedule
 
+
+def account_summaries():
+    """Six linear reads, Decimal arithmetic, no model/relationship query per account.
+
+    Read-only workspace summaries; posting always rechecks authoritative models
+    under the financial write lock. No persistent cache or rounded SQL sums.
+    """
+    rows = {a['id']: dict(account_id=a['id'], closed_at=a['closed_at'], charges=ZERO,
+                        reductions=ZERO, balance=ZERO, latest_change=None, schedule=None,
+                        next_due=None, overdue=ZERO, had_schedule=False)
+            for a in TreatmentAccount.objects.values('id', 'closed_at')}
+    schedules = {}
+    for s in Schedule.objects.values('id','account_id','created_at').iterator():
+        row = rows[s['account_id']]
+        row['had_schedule'] = True
+        if row['schedule'] is None:  # Schedule ordering is newest PK first.
+            row['schedule'] = s
+            schedules[s['id']] = row
+    for e in LedgerEntry.objects.values('account_id','kind','amount','recorded_at','original__kind').iterator():
+        row = rows[e['account_id']]
+        kind, amount, original = e['kind'], e['amount'], e['original__kind']
+        if kind == 'charge': row['charges'] += amount; row['balance'] += amount
+        elif kind == 'payment': row['balance'] -= amount
+        elif kind == 'refund': row['balance'] += amount
+        elif kind in ('discount','writeoff'): row['reductions'] += amount; row['balance'] -= amount
+        elif original == 'payment': row['balance'] += amount
+        elif original == 'charge': row['charges'] -= amount; row['balance'] -= amount
+        else: row['reductions'] -= amount; row['balance'] += amount
+        if kind not in ('payment','refund') and not (kind == 'reversal' and original == 'payment'):
+            if row['latest_change'] is None or e['recorded_at'] > row['latest_change']:
+                row['latest_change'] = e['recorded_at']
+    for e in AccountEvent.objects.filter(action='schedule_invalidated').values('account_id','created_at').iterator():
+        row=rows[e['account_id']]
+        if row['latest_change'] is None or e['created_at'] > row['latest_change']:
+            row['latest_change']=e['created_at']
+    for row in rows.values():
+        if row['schedule'] and row['latest_change'] and row['latest_change'] > row['schedule']['created_at']:
+            row['schedule']=None
+    allocated={}
+    for allocation in Allocation.objects.values('installment_id','amount').iterator():
+        key=allocation['installment_id']
+        allocated[key]=allocated.get(key,ZERO)+allocation['amount']
+    day=today()
+    for item in Installment.objects.values('id','schedule_id','amount','due_on').iterator():
+        row=schedules.get(item['schedule_id'])
+        if not row or not row['schedule']: continue
+        remaining=item['amount']-allocated.get(item['id'],ZERO)
+        due=item['due_on']
+        if remaining > 0 and due:
+            row['next_due']=min(row['next_due'],due) if row['next_due'] else due
+            if due < day: row['overdue'] += remaining
+    return list(rows.values())
+
 def allocate(entry):
     schedule = active_schedule(entry.account)
     if not schedule: return

@@ -113,7 +113,7 @@ def run():
             sock.bind(('127.0.0.1', 0))
             port = sock.getsockname()[1]
         base = f'http://127.0.0.1:{port}'
-        server = subprocess.Popen([str(PYTHON), 'manage.py', 'runserver', f'127.0.0.1:{port}', '--noreload', '--insecure'], cwd=ROOT, env=env, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        server = subprocess.Popen([str(PYTHON), 'manage.py', 'serve_clinic', '--port', str(port)], cwd=ROOT, env=env, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         try:
             for _ in range(30):
                 if server.poll() is not None:
@@ -172,7 +172,17 @@ def run():
                     assert page.request.get(base + '/audit/').status == expected
                     check_finance(page, base, profile_url, username, width, ROOT)
                     check_workflow(page, context, base, profile_url, username, width, ROOT, env['RUMI_BROWSER_PASSWORD'])
-                    check_backups(page, base, username, width, Path(backup_destination), backup_password, env['RUMI_BROWSER_PASSWORD'])
+                    try:
+                        check_backups(page, base, username, width, Path(backup_destination), backup_password, env['RUMI_BROWSER_PASSWORD'])
+                    except Exception:
+                        import json
+                        for job_file in (Path(data_dir)/'backup-control/jobs').glob('*.json'):
+                            job=json.loads(job_file.read_text())
+                            print('Fictional job diagnostic:',job['kind'],job['status'],job['stage'],flush=True)
+                        print('Fictional UI progress:',page.locator('#backup-state').all_text_contents(),page.locator('#backup-stage').all_text_contents(),errors,flush=True)
+                        for diagnostic in (Path(data_dir)/'diagnostics').glob('*.log'):
+                            print('Allowlisted fixture diagnostic:',diagnostic.read_text(),flush=True)
+                        raise
                     page.goto(profile_url)
                     if username == 'browserdoctor':
                         check_clinical(page, context, base, env['RUMI_BROWSER_PASSWORD'], image_path, Path(data_dir) / 'clinic.sqlite3', width)
@@ -185,7 +195,10 @@ def run():
                     print(f'PASS: {username} at {width}px login -> dashboard -> register -> alternate-format search -> profile -> edit -> logout; local assets, no overflow, account/audit permissions correct', flush=True)
                 browser.close()
         finally:
-            server.terminate()
+            # Cooperative stop targets only this fixture's random instance token.
+            import json
+            state = json.loads((Path(data_dir) / 'local-server.json').read_text())
+            (Path(data_dir) / 'local-stop.json').write_text(json.dumps({'token': state['token']}))
             server.wait(timeout=15)
 
 if __name__ == '__main__':

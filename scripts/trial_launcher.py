@@ -1,4 +1,4 @@
-"""Windows Phase 1 trial launcher. No installation or database initialization."""
+"""Verified local WSGI launcher. No installation or database initialization."""
 import argparse
 import errno
 import _thread
@@ -96,7 +96,10 @@ def preflight():
     secret = secret_file.read_text(encoding='utf-8').strip()
     challenge = secrets.token_hex(32)
     proof = identity_proof(secret, challenge, ROOT, database)
-    print('Rumi Dental Care - Phase 1 trial', flush=True)
+    if sys.version_info[:2] != (3, 13):
+        raise TrialLaunchError('This installation supports Python 3.13; use its project virtual environment.')
+    import waitress, whitenoise
+    print('Rumi Dental Care - 6.0 local clinic trial', flush=True)
     print(f'Project: {ROOT}', flush=True)
     print(f'Python: {sys.executable}', flush=True)
     print('Settings: config.settings', flush=True)
@@ -171,11 +174,10 @@ def launch(challenge, proof, browser=True):
                 'No process was killed and no other port was selected.'
             )
         print('Verified existing Rumi trial server; reusing it without starting another process.', flush=True)
-        print('Keep the ORIGINAL server console open. Ctrl+C there stops it. Closing the browser does not stop the server.', flush=True)
+        print('Closing the browser does not stop the application. Use Stop Rumi Dental Care for orderly shutdown.', flush=True)
         open_browser(browser)
         return 0
-    print('Keep this window open while using the application.', flush=True)
-    print('Press Ctrl+C in this window to stop. Closing only the browser does not stop the server.', flush=True)
+    print('Diagnostic foreground WSGI server. Use Stop Rumi Dental Care for orderly shutdown.', flush=True)
     stopped = threading.Event()
     failed = threading.Event()
 
@@ -190,8 +192,8 @@ def launch(challenge, proof, browser=True):
     watcher = threading.Thread(target=monitor, daemon=True)
     watcher.start()
     try:
-        from django.core.management import call_command
-        call_command('runserver', '127.0.0.1:8000', insecure_serving=True, use_reloader=False)
+        from clinic.local_server import serve
+        serve()
     except KeyboardInterrupt:
         pass
     except SystemExit as exc:
@@ -203,14 +205,58 @@ def launch(challenge, proof, browser=True):
     return 1 if failed.is_set() else 0
 
 
+def stop(challenge, proof, timeout=60):
+    from clinic.backups.archive import read_json, atomic_json
+    from clinic.backups.locks import lease, lock_path, Busy
+    from clinic.local_server import control_paths
+    from django.conf import settings
+    state_path, stop_path = control_paths(settings.DATA_DIR)
+    if not port_occupied():
+        try:
+            with lease(lock_path(settings.DATA_DIR, 'server')):
+                print('Rumi is already stopped.', flush=True)
+                return
+        except Busy:
+            raise TrialLaunchError('A server or offline recovery still holds this runtime. Wait for it to finish; nothing was killed.') from None
+    if not application_ready(challenge, proof):
+        raise TrialLaunchError('Port 8000 identity cannot be verified. Stop refused; no unrelated process was touched.')
+    try:
+        state = read_json(state_path, 4096)
+        token = state['token']
+        if not isinstance(token, str) or len(token) != 64:
+            raise ValueError
+    except (OSError, ValueError, KeyError):
+        raise TrialLaunchError('This server lacks compatible safe Stop control. Use its original diagnostic console; no process was killed.') from None
+    atomic_json(stop_path, {'token': token})
+    print('Waiting for active requests and backup jobs to finish. Do not close Windows or interrupt recovery.', flush=True)
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        try:
+            with lease(lock_path(settings.DATA_DIR, 'server')):
+                print('Rumi stopped safely.', flush=True)
+                return
+        except Busy:
+            time.sleep(.2)
+    raise TrialLaunchError('Shutdown is still waiting for requests, backup or recovery. Leave Windows running, wait, then retry Stop. Nothing was forcibly terminated.')
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--check', action='store_true', help='Only inspect the intended environment/database; never start a server.')
     parser.add_argument('--no-browser', action='store_true', help='Run readiness checks without opening a browser (verification use).')
+    parser.add_argument('--stop', action='store_true', help='Request coordinated shutdown of this verified installation.')
+    parser.add_argument('--serve', action='store_true', help=argparse.SUPPRESS)
     args = parser.parse_args()
     try:
         challenge, proof = preflight()
         if args.check:
+            return 0
+        if args.stop:
+            stop(challenge, proof)
+            return 0
+        if args.serve:
+            from clinic.local_server import serve
+            serve()
             return 0
         return launch(challenge, proof, browser=not args.no_browser)
     except TrialLaunchError as exc:

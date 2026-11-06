@@ -68,7 +68,7 @@ def check_workflow(page,context,base,profile_url,username,width,root,password):
         assert page.get_by_text(patient_name,exact=True).count()==1
         assert page.get_by_role('navigation').count()==0
         page.emulate_media(media='print')
-        assert page.locator('.no-print').first.evaluate('e => getComputedStyle(e).display')=='none'
+        page.wait_for_function("() => getComputedStyle(document.querySelector('.no-print')).display === 'none'")
         assert page.evaluate('document.documentElement.scrollWidth <= window.innerWidth')
         page.screenshot(path=str(root/'runtime'/f'prescription-{width}.png'),full_page=True)
         page.emulate_media(media='screen')

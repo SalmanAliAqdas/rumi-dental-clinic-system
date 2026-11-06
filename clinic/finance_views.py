@@ -4,6 +4,7 @@ import csv
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.core.paginator import Paginator
 from django.db import OperationalError
+from django.db.models import Q
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_GET, require_http_methods
@@ -139,15 +140,16 @@ def outstanding(request):
     choice = request.GET.get('filter','outstanding')
     if choice not in ('outstanding','due','overdue','settled'): return HttpResponse('Invalid filter',status=400)
     rows = []
-    for a in TreatmentAccount.objects.select_related('patient'):
-        t = service.totals(a)
-        schedule = service.active_schedule(a)
-        pending = [i for i in schedule.items.all() if i.remaining>0] if schedule else []
-        next_due = min((i.due_on for i in pending if i.due_on), default=None)
-        matches = (choice=='settled' and t['balance']==0 and t['charges']>0) or (choice=='outstanding' and t['balance']>0 and not a.closed_at) or (choice=='due' and t['balance']>0 and next_due and next_due<=service.today()) or (choice=='overdue' and t['balance']>0 and next_due and next_due<service.today())
-        status='Overdue' if next_due and next_due<service.today() else 'Installments due' if next_due and next_due==service.today() else 'Schedule revision required' if not schedule and a.schedules.exists() and t['balance']>0 else a.status
-        if matches: rows.append(dict(account=a, balance=t['balance'], next_due=next_due, status=status))
+    day=service.today()
+    for t in service.account_summaries():
+        next_due=t['next_due']
+        matches = (choice=='settled' and t['balance']==0 and t['charges']>0) or (choice=='outstanding' and t['balance']>0 and not t['closed_at']) or (choice=='due' and t['balance']>0 and next_due and next_due<=day) or (choice=='overdue' and t['balance']>0 and next_due and next_due<day)
+        status='Closed - settled with adjustment' if t['closed_at'] and t['reductions'] else 'Closed - fully paid' if t['closed_at'] else 'Settled with adjustment' if t['balance']==0 and t['reductions'] else 'Fully paid' if t['balance']==0 and t['charges'] else 'Outstanding' if t['balance']>0 else 'Awaiting charges'
+        status='Overdue' if next_due and next_due<day else 'Installments due' if next_due and next_due==day else 'Schedule revision required' if not t['schedule'] and t['had_schedule'] and t['balance']>0 else status
+        if matches: rows.append(dict(account_id=t['account_id'], balance=t['balance'], next_due=next_due, status=status))
     page = Paginator(rows,20).get_page(request.GET.get('page'))
+    accounts=TreatmentAccount.objects.select_related('patient').in_bulk([r['account_id'] for r in page.object_list])
+    for row in page.object_list: row['account']=accounts[row['account_id']]
     context = dict(page=page, choice=choice)
     if request.user.is_superuser: context['combined_balance'] = sum((r['balance'] for r in rows), service.ZERO)
     return render(request,'finance/outstanding.html',context)
@@ -156,18 +158,26 @@ def outstanding(request):
 def collection_data(start, end):
     lo, hi = service.boundaries(start,end)
     entries = LedgerEntry.objects.filter(received_at__gte=lo, received_at__lt=hi).select_related('account__patient','original')
-    entries = [e for e in entries if e.kind in ('payment','refund') or (e.kind=='reversal' and e.original.kind=='payment')]
-    gross = sum((e.amount for e in entries if e.kind=='payment'),service.ZERO)
-    adjustments = sum((e.amount for e in entries if e.kind!='payment'),service.ZERO)
-    methods = [(label, sum((e.amount if e.kind=='payment' else -e.amount for e in entries if e.method==key),service.ZERO)) for key,label in METHODS]
+    entries = entries.filter(Q(kind__in=('payment','refund')) | Q(kind='reversal',original__kind='payment'))
+    gross = adjustments = service.ZERO
+    method_totals={key:service.ZERO for key,label in METHODS}
+    for entry in entries.values('kind','amount','method').iterator():
+        amount=entry['amount']
+        if entry['kind']=='payment': gross += amount
+        else: adjustments += amount
+        if entry['method'] in method_totals:
+            method_totals[entry['method']] += amount if entry['kind']=='payment' else -amount
+    methods = [(label,method_totals[key]) for key,label in METHODS]
     return dict(entries=entries,gross=gross,adjustments=adjustments,net=gross-adjustments,methods=methods)
 
 @clinic_required()
 @require_GET
 def today_collections(request):
-    if request.GET: raise PermissionDenied
+    if set(request.GET)-{'page'}: raise PermissionDenied
     day = service.today()
-    return render(request,'finance/collections.html',dict(start=day,end=day,**collection_data(day,day)))
+    data = collection_data(day,day)
+    data['entries'] = Paginator(data['entries'],50).get_page(request.GET.get('page'))
+    return render(request,'finance/collections.html',dict(start=day,end=day,**data))
 
 
 def report_range(query):
@@ -199,31 +209,36 @@ def reports(request, export=False):
     except ValidationError as exc: return HttpResponse('; '.join(exc.messages),status=400)
     data=collection_data(start,end)
     lo,hi=service.boundaries(start,end)
-    ledger=list(LedgerEntry.objects.filter(received_at__gte=lo,received_at__lt=hi).select_related('account__patient','original'))
-    charges=sum((e.amount if e.kind=='charge' else -e.amount for e in ledger if e.kind=='charge' or (e.kind=='reversal' and e.original.kind=='charge')),service.ZERO)
-    reductions=sum((e.amount if e.kind!='reversal' else -e.amount for e in ledger if e.kind in ('discount','writeoff') or (e.kind=='reversal' and e.original.kind in ('discount','writeoff'))),service.ZERO)
-    expenses=list(Expense.objects.filter(spent_on__range=(start,end)).select_related('actor','original'))
-    expense_total=sum((-e.amount if e.original_id else e.amount for e in expenses),service.ZERO)
+    ledger=LedgerEntry.objects.filter(received_at__gte=lo,received_at__lt=hi).select_related('account__patient','original')
+    charges=reductions=service.ZERO
+    for entry in ledger.values('kind','amount','original__kind').iterator():
+        kind,amount,original=entry['kind'],entry['amount'],entry['original__kind']
+        if kind=='charge': charges += amount
+        elif kind=='reversal' and original=='charge': charges -= amount
+        elif kind in ('discount','writeoff'): reductions += amount
+        elif kind=='reversal' and original in ('discount','writeoff'): reductions -= amount
+    expenses=Expense.objects.filter(spent_on__range=(start,end)).select_related('actor','original')
+    expense_total=sum((-e['amount'] if e['original_id'] else e['amount'] for e in expenses.values('amount','original_id').iterator()),service.ZERO)
     outstanding_total=service.ZERO
     overdue=service.ZERO
-    for a in TreatmentAccount.objects.all():
-        outstanding_total += service.totals(a)['balance']
-        schedule=service.active_schedule(a)
-        if schedule:
-            overdue += sum((i.remaining for i in schedule.items.all() if i.due_on and i.due_on<service.today()),service.ZERO)
+    for summary in service.account_summaries():
+        outstanding_total += summary['balance']
+        overdue += summary['overdue']
     if export:
         response=HttpResponse(content_type='text/csv; charset=utf-8')
         response['Content-Disposition']='attachment; filename="rumi-financial-report.csv"'
         writer=csv.writer(response)
         writer.writerow(['Rumi Dental Care financial report',start.isoformat(),end.isoformat(),'PKR'])
         writer.writerow(['Type','Business date/time','Patient number','Account','Reference','Method','Amount PKR','Cash effect PKR','Description'])
-        for e in ledger:
+        for e in ledger.iterator():
             cash=e.amount if e.kind=='payment' else -e.amount if e.kind=='refund' or (e.kind=='reversal' and e.original.kind=='payment') else service.ZERO
             writer.writerow([safe_cell(v) for v in [e.get_kind_display(),e.received_at.astimezone(service.PK).isoformat(),e.account.patient.number,e.account.reference,e.reference,e.get_method_display(),e.amount,cash,e.description]])
-        for e in expenses:
+        for e in expenses.iterator():
             writer.writerow([safe_cell(v) for v in ['Expense reversal' if e.original_id else 'Expense',e.spent_on,'','',e.reference,e.get_method_display(),e.amount,e.amount if e.original_id else -e.amount,e.description]])
         for label,value in [('Net charges in selected range',charges),('Approved net discounts/write-offs in selected range',reductions),('Gross collections',data['gross']),('Refunds/payment reversals',data['adjustments']),('Net collections',data['net']),('Net expenses',expense_total),('Net cash movement',data['net']-expense_total),('Current receivables (as of today)',outstanding_total),('Current overdue installments',overdue)]: writer.writerow([label,value])
         return response
+    data['entries'] = Paginator(data['entries'],50).get_page(request.GET.get('page'))
+    expenses = Paginator(expenses,50).get_page(request.GET.get('page'))
     return render(request,'finance/reports.html',dict(start=start,end=end,expenses=expenses,expense_total=expense_total,
         charges=charges,reductions=reductions,cash_movement=data['net']-expense_total,outstanding_total=outstanding_total,overdue=overdue,**data))
 
