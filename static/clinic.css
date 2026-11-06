@@ -609,20 +609,22 @@ form ul:not(.errorlist) {
   .workspace-label { flex-shrink:0; display:inline-flex; align-items:center; gap:9px; padding:8px 13px; border:1px solid var(--green-border); border-radius:30px; color:var(--green-text); font-size:12px; background:var(--green-bg); }
   .workspace-label span { color:var(--green); font-size:10px; }
   .action-tiles { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:15px; margin:0 0 25px; }
-  .action-tile { --tile-accent:var(--blue); --tile-border:var(--blue-border); --tile-bg:var(--blue-bg); display:flex; align-items:center; position:relative; gap:17px; min-width:0; min-height:118px; padding:23px 42px 23px 22px; border:1px solid var(--tile-border); border-radius:15px; background:linear-gradient(125deg,var(--tile-bg),var(--panel)); color:var(--text); box-shadow:0 4px 12px var(--shadow); transition:border-color .15s,box-shadow .15s; }
-  .action-tile:hover { text-decoration:none; border-color:var(--tile-accent); box-shadow:0 5px 20px var(--shadow); }
-  .action-tile:focus-visible { outline:3px solid var(--tile-accent); outline-offset:4px; }
-  .tile-register { --tile-accent:var(--green); --tile-border:var(--green-border); --tile-bg:var(--green-bg); }
-  .tile-outstanding { --tile-accent:var(--green-text); --tile-border:var(--green-border); --tile-bg:var(--green-bg); }
-  .tile-collections { --tile-accent:var(--green); --tile-border:var(--green-border); --tile-bg:var(--green-bg); }
-  .tile-schedule { --tile-accent:var(--blue); --tile-border:var(--blue-border); --tile-bg:var(--blue-bg); }
-  .tile-tasks { --tile-accent:var(--cyan); --tile-border:var(--cyan-border); --tile-bg:var(--cyan-bg); }
-  .tile-icon { display:grid; place-items:center; flex:0 0 47px; width:47px; height:47px; border:1px solid var(--tile-border); border-radius:12px; background:var(--inset); color:var(--tile-accent); }
+  /* Restrained action-card palette, isolated from the global clinic branding. */
+  .dashboard-main .action-tiles { --card-bg:#19232d; --card-border:#35414b; --card-title:#edf1f4; --card-description:#b5c0c9; }
+  :where(.dashboard-main .action-tiles) .action-tile { --tile-accent:#7db7f0; display:flex; align-items:center; position:relative; gap:17px; min-width:0; min-height:118px; padding:23px 42px 23px 22px; border:1px solid var(--card-border); border-radius:15px; background:color-mix(in srgb,var(--tile-accent) 3%,var(--card-bg)); color:var(--card-title); box-shadow:0 4px 12px var(--shadow); }
+  :where(.dashboard-main .action-tiles) .action-tile:hover { text-decoration:none; background:color-mix(in srgb,var(--tile-accent) 6%,var(--card-bg)); border-color:color-mix(in srgb,var(--tile-accent) 35%,var(--card-border)); box-shadow:0 0 16px color-mix(in srgb,var(--tile-accent) 8%,transparent); }
+  :where(.dashboard-main .action-tiles) .action-tile:focus-visible { outline:3px solid var(--tile-accent); outline-offset:4px; }
+  :where(.dashboard-main .action-tiles) .tile-register { --tile-accent:#76c7b0; }
+  :where(.dashboard-main .action-tiles) .tile-outstanding { --tile-accent:#ddb477; }
+  :where(.dashboard-main .action-tiles) .tile-collections { --tile-accent:#93c89a; }
+  :where(.dashboard-main .action-tiles) .tile-schedule { --tile-accent:#b0a2dc; }
+  :where(.dashboard-main .action-tiles) .tile-tasks { --tile-accent:#78c5cf; }
+  :where(.dashboard-main .action-tiles) .tile-icon { display:grid; place-items:center; flex:0 0 47px; width:47px; height:47px; border:1px solid color-mix(in srgb,var(--tile-accent) 25%,var(--card-border)); border-radius:12px; background:color-mix(in srgb,var(--tile-accent) 10%,var(--card-bg)); color:var(--tile-accent); }
   .tile-icon svg { width:26px; height:26px; }
   .tile-copy { display:flex; flex-direction:column; min-width:0; gap:5px; }
-  .tile-copy strong { font-size:18px; font-weight:650; line-height:1.35; color:var(--tile-accent); }
-  .tile-copy > span { font-size:13px; line-height:1.55; color:var(--muted); }
-  .tile-arrow { position:absolute; top:16px; right:17px; font-size:19px; line-height:1; color:var(--tile-accent); }
+  :where(.dashboard-main .action-tiles) .tile-copy strong { font-size:18px; font-weight:650; line-height:1.35; color:var(--card-title); }
+  :where(.dashboard-main .action-tiles) .tile-copy > span { font-size:13px; line-height:1.55; color:var(--card-description); }
+  :where(.dashboard-main .action-tiles) .tile-arrow { position:absolute; top:16px; right:17px; font-size:19px; line-height:1; color:var(--tile-accent); }
   .dashboard-search { display:grid; grid-template-columns:minmax(220px,.85fr) minmax(0,1.65fr); gap:36px; align-items:center; padding:25px 28px; margin:0 0 30px; background:linear-gradient(110deg,var(--blue-bg),var(--panel)); border-color:var(--blue-border); }
   .dashboard-search h2 { font-size:26px; letter-spacing:-.4px; margin-bottom:10px; }
   .dashboard-search .eyebrow { font-size:10px; margin-bottom:8px; }
