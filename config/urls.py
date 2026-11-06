@@ -1,9 +1,25 @@
 from django.urls import path
 from django.contrib.auth.views import LogoutView
+from clinic import finance_views as finance
 from clinic import views
 from clinic import clinical_views as clinical
 
 urlpatterns = [
+    path('finance/outstanding/', finance.outstanding, name='finance_outstanding'),
+    path('finance/today/', finance.today_collections, name='finance_today'),
+    path('finance/reports/', finance.reports, name='finance_reports'),
+    path('finance/export/', finance.reports, {'export': True}, name='finance_export'),
+    path('finance/expenses/new/', finance.expense_new, name='finance_expense'),
+    path('finance/expenses/<int:expense_id>/reverse/', finance.expense_new, name='finance_expense_reverse'),
+    path('patients/<int:pk>/payments/', finance.patient_accounts, name='finance_patient'),
+    path('patients/<int:pk>/payments/new/', finance.account_new, name='finance_account_new'),
+    path('patients/<int:pk>/payments/<int:account_id>/', finance.account_detail, name='finance_account'),
+    path('patients/<int:pk>/payments/<int:account_id>/entry/', finance.entry_new, name='finance_entry'),
+    path('patients/<int:pk>/payments/<int:account_id>/installments/', finance.schedule_new, name='finance_schedule'),
+    path('patients/<int:pk>/payments/<int:account_id>/action/<str:action>/', finance.account_action, name='finance_action'),
+    path('patients/<int:pk>/payments/<int:account_id>/corrections/', finance.correction_new, name='finance_correction'),
+    path('patients/<int:pk>/payments/<int:account_id>/corrections/<int:correction_id>/', finance.correction_decide, name='finance_decide'),
+    path('patients/<int:pk>/payments/<int:account_id>/receipt/<int:entry_id>/', finance.receipt, name='finance_receipt'),
     path('catalogue/', clinical.catalogue, name='catalogue'),
     path('catalogue/<int:procedure_id>/', clinical.catalogue, name='procedure_edit'),
     path('patients/<int:pk>/clinical/<str:section>/', clinical.section, name='clinical_section'),

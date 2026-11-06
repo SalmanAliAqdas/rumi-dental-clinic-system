@@ -1,4 +1,4 @@
-# Rumi Dental Care — Phase 2 trial
+# Rumi Dental Care — Phase 3 trial
 
 Private, offline-first patient management for one dental clinic and one dentist in Lahore. The workflow is phone → matching patients → individual profile → dated visit → clinical history, treatment stages and private attachments. No online deployment, paid services, CDN assets or internet calls are used during everyday operation.
 
@@ -109,7 +109,7 @@ To choose another writable directory, set this before **every** management/start
 $env:RUMI_DATA_DIR = 'C:\ClinicData\RumiDentalCare'
 ```
 
-Do not switch directories accidentally: doing so opens a different clinic database. Current implementation verification used ignored `runtime\development` and isolated temporary browser data, so your default data directory has not been seeded with demo accounts.
+Do not switch directories accidentally: doing so opens a different clinic database. Implementation verification uses the existing `runtime\development` and isolated temporary browser data; no demo accounts are seeded into the clinic database.
 
 The owner can enable/disable Doctor accounts on Accounts; disabling blocks their existing sessions on the next request. Password reset (owner at the Windows console):
 
@@ -185,7 +185,7 @@ Every patient route checks authentication and the relevant Django permission on 
 
 Search uses same-origin POST, paginates at 20 results and requires four digits for partial phone queries (two characters for names/numbers). Canonical E.164 phone and WhatsApp columns have indexes for exact lookup. Substring searches can scan rows; realistic-volume performance must be evaluated during the clinic trial. Full phone matching searches both primary phone and WhatsApp. Numbers are not unique across patients. Patient numbers are immutable, unique opaque references; they are not an authorization mechanism.
 
-Patient responses have private/no-store cache controls, a same-origin referrer policy and restrictive same-origin CSP headers. Ordinary Django request/access logs are suppressed to avoid retaining URLs or patient terms. The audit database stores actor, patient/object references, action and timestamp, never copies of clinical text. It records clinical changes, completion/amendments, medical updates, treatment-plan changes and attachment upload/access. Dated medical snapshots, plan revisions and completed-visit amendments retain their clinical context in clinical tables. Trusted direct database/ORM maintenance can bypass application restrictions: this is **not tamper-proof**. Neither SQLite, uploaded originals nor the secret file is encrypted by this application. Finance, prescriptions, appointments, complete backup/restore and export remain pending.
+Patient responses have private/no-store cache controls, a same-origin referrer policy and restrictive same-origin CSP headers. Ordinary Django request/access logs are suppressed to avoid retaining URLs or patient terms. The audit database stores actor, patient/object references, action and timestamp, never copies of clinical text. It records clinical changes, completion/amendments, medical updates, treatment-plan changes and attachment upload/access. Dated medical snapshots, plan revisions and completed-visit amendments retain their clinical context in clinical tables. Trusted direct database/ORM maintenance can bypass application restrictions: this is **not tamper-proof**. Neither SQLite, uploaded originals nor the secret file is encrypted by this application. Prescriptions, appointments and complete backup/restore remain pending. Financial reports and CSV export are Owner-only.
 
 Safe local diagnostics are bounded to a 256 KiB file plus three rotated files at `runtime/development/diagnostics/events.log`. Only a generated event ID, time, fixed category/severity, allowlisted exception type and application source locations are recorded. No exception message, request fields, passwords, patient text, SQL or locals are formatted. Generic 500 responses provide an `X-Rumi-Error-ID` header without showing details. A logging failure never falls back to printing the unsafe event.
 
@@ -237,4 +237,41 @@ The helper copies the consistent SQLite database with its matching secret to ign
 
 Generated originals live at `runtime/development/attachments/originals/`; replaceable image thumbnails at `attachments/thumbnails/`; temporary upload files at `upload-tmp/`. Uploads are limited to 10 MiB, images to 10,000 pixels per side/25 million pixels, and passive PDFs to 200 pages with bounded structure checks. Extension and actual content must agree; active/encrypted/malformed PDFs and unsupported formats are rejected. All original, thumbnail and preview routes require authentication and permission; there is no public media route. Missing files produce a safe unavailable response while their metadata is retained. Upload failures clean up newly created files; power-loss orphan reconciliation and full restore testing remain future work. Future complete backups must capture the database **and every uploaded original together**, plus needed configuration and a verified manifest.
 
-Next is **Phase 3**, only after explicit authorization: charges, payments, installments and balances with the documented Doctor/Owner boundaries. No Phase 3 work or online deployment is included. See [requirements](docs/REQUIREMENTS.md), [roadmap](docs/ROADMAP.md) and [progress](docs/PROGRESS.md).
+Phase 3 is implemented below. Phase 4 requires separate authorization. See [requirements](docs/REQUIREMENTS.md), [roadmap](docs/ROADMAP.md) and [progress](docs/PROGRESS.md).
+
+
+## Phase 3: charges, payments and installments
+
+Open a patient by phone, then **Payments > New treatment account**. Each returning course of treatment can have a separate account without creating another patient. Record the agreed total through one or more **Record Charge** entries. Link an existing plan item or visit where appropriate; a plan item may be charged only once across all accounts. Subsequent visits do not create charges automatically. Clinical completion and financial settlement are separate.
+
+**Receive Payment / Pay in Full** supports both full and partial amounts without a visit. Choose Cash, Bank transfer or Easypaisa. There are no card payments or external services. Use the suggested remaining amount for full payment, or enter the partial amount. A printable individual receipt follows a successful payment; use the browser Print command. Receipt balances distinguish the balance immediately after posting from the current balance and show later corrections.
+
+### Test the PKR 10,000 example with fictional data
+
+1. Find a fictional patient by phone, open Payments and create an account named "Fictional installment trial".
+2. Record Charge: PKR `10000`, with an agreed-treatment description.
+3. Receive Payment: PKR `3000`, method Cash. Return from the receipt; remaining balance is PKR `7000`.
+4. Choose Installment Plan, enter agreement notes and two lines: `2000 | | First installment` and `5000 | | Final installment`. The blank middle field means no due date was agreed. Optionally enter an actual agreed date as `YYYY-MM-DD` between the separators.
+5. Receive PKR `2000`; remaining balance is PKR `5000`. The first installment is paid. Receive the final PKR `5000`; remaining balance is zero and both installments are paid.
+6. Choose **Full Payment Received & Close Account**, give a reason and save. Closure creates an account event, never a second payment. The account leaves the default Outstanding payments list. Reopen the patient's Payments tab to see its complete closed history and all three receipts.
+7. As Doctor, `/finance/today/` shows today's final payment too. `/finance/reports/` and `/finance/export/`, including direct historical URL parameters, return 403. As Owner, open Financial reports and choose daily, Monday-Sunday weekly, monthly, annual or custom dates.
+
+### Calculation, permissions and corrections
+
+All amounts use Decimal with two decimal places; positive entries only. Zero, negatives, nonfinite values, excess precision and accidental overpayment are rejected. Remaining balance = original charges - charge reversals - approved discounts/write-offs - gross payments + refunds/payment reversals. Discounts and write-offs are never counted as cash. Original charges, explicit reversals and every posted entry remain visible. Financial state changes serialize through a first-statement SQLite write reservation inside an atomic transaction; state is reread after acquiring the lock. Unique form submission tokens and receipt references prevent duplicate posting on double-click/retry. A busy-database response preserves the token and asks for a retry.
+
+Doctor can read every individual patient's financial history, including old closed accounts, create charges, record today's payments, set an initial installment agreement, request corrections and use the individual outstanding list. The list includes patient/contact/account, individual balance, due date and actions, with no combined monetary totals in its template context. Doctor cannot backdate, revise schedules, approve corrections, reopen accounts, view combined past reports, manage expenses or bulk-export. The server forces Doctor receipt time to now regardless of submitted fields. Access follows the existing fixed Doctor patient permission and Owner superuser role; no roles/passwords are changed.
+
+Owner can approve discounts/write-offs, refunds and full original-entry reversals with reasons. Refunds link to the original payment, use its method and cannot exceed its uncorrected remainder. Full reversal requires the entire uncorrected original; a previously refunded payment cannot also be fully reversed. A charge reversal or reduction cannot produce a negative balance. Doctor correction requests remain Pending until Owner explicitly approves a reversal or rejects with a reason. Re-enter any corrected replacement transaction separately; originals are retained. Closed accounts must first be reopened by Owner with a recorded reason. Adjusted settlements are labelled separately and only Owner can close them.
+
+Installment rows must sum exactly to the current remaining balance when agreed. Payments allocate oldest schedule rows first, including partial and multiple-row payments; allocations are not additional collections. Refunds/reversals release allocations from the last row backwards. Due dates are optional; overdue means unpaid and before today's Pakistan date. Revisions are Owner-only, retain previous agreements/allocations and cover the then-remaining balance. Charges/discounts/charge reversals or refunds beyond current-schedule allocations invalidate that agreement as the current schedule; its history remains visible and Owner must agree a replacement. The UI never presents such an old agreement as the current amount payable. Early full payment completes all remaining scheduled rows without changing due dates.
+
+Today's collections and reports use **Asia/Karachi midnight inclusive through next midnight exclusive**, independent of server UTC. Today accepts no date/filter/pagination parameters. Owner reports separate net charges, approved noncash reductions, gross receipts, refunds/payment reversals, net collections, net expenses and **net cash movement** (net collections minus net expenses). Net cash movement is not accounting profit. Method totals are net collections for cash/bank/Easypaisa. Current receivables and overdue installments are explicitly **as of today**, even when the selected cash-flow range is historical; historical receivable snapshots are not provided. Expense corrections are immutable linked reversals with reasons and actor/time; enter a replacement separately. CSV includes financial entries/expenses and summaries, no clinical notes, and neutralizes spreadsheet formulas.
+
+### Migration and verification
+
+Migrations `0004` and `0005` add finance tables and the serialization row. Before applying to this checkout, its identified server was stopped; an exclusive SQLite check confirmed writes were paused. `scripts/safety_copy.py` created and verified a consistent database and matching-secret copy under ignored `runtime/development/safety-copies`. All original rows (including login hashes and roles) were compared after migration; original uploads and secret were fingerprinted unchanged. This local safety copy is **not** the complete Phase 5 backup system.
+
+`manage.py test` now includes financial arithmetic, role boundaries, refunds/corrections, schedules, reports and two independent file-backed SQLite posting processes. `scripts/browser_check.py` also runs the entire example for both roles at desktop/narrow widths with isolated fictional data. Existing launchers/shortcuts still select `runtime/development`. See `docs/PROGRESS.md` for actual results. Runtime dependencies are unchanged; development browser tooling is optional.
+
+Phase 3 stops here. Appointments, tasks and prescriptions remain Phase 4. Continue fictional-data use until backup/restore and clinic trials pass. Large-volume financial query performance, physical receipt/printer testing and power-loss/recovery trials remain future verification; this is a single-workstation trial.

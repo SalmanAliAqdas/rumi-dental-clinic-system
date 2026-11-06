@@ -1,6 +1,6 @@
 # Confirmed requirements
 
-Private business software for Rumi Dental Care, Lahore, Pakistan: one branch, one dentist, no receptionist. Daily workflow: phone → matching patients → complete individual profile → today's visit → reliable retrieval years later. Windows offline operation comes first. Phases 1–2 are implemented as a fictional-data trial. Online deployment is a separate future stage.
+Private business software for Rumi Dental Care, Lahore, Pakistan: one branch, one dentist, no receptionist. Daily workflow: phone → matching patients → complete individual profile → today's visit → reliable retrieval years later. Windows offline operation comes first. Phases 1-3 are implemented as a fictional-data trial. Online deployment is a separate future stage.
 
 ## Stack and local operation
 
@@ -19,13 +19,13 @@ Doctor:
 
 - Register, search and update patients.
 - Open **ANY individual patient's complete clinical AND financial history**, including old payments and fully paid accounts.
-- Later: enter today's charges/payments and manage installments.
-- Later: see today's combined collections.
-- Later: see outstanding patients and their individual balances.
+- Create agreed charges, record today's payments and set initial installment agreements; Owner approves revisions.
+- See today's combined collections.
+- See outstanding patients and their individual balances.
 - Must **NOT** see combined historical financial totals or weekly, monthly or annual income reports.
 - Must **NOT** have bulk financial export or backup/restore access.
 
-Never hide old financial records from the Doctor inside an individual patient's profile. Server authorization must enforce these rules on every future endpoint, query, report and export. Current owner accounts are superusers; Doctors receive fixed patient and clinical-record view/add/change permissions as appropriate. No audit write, hard deletion, account administration or export permissions are granted to Doctor. Owners can create and disable/enable Doctors and reset passwords from the local console. Finance, arbitrary custom-role UI, backup and export are pending. No general Django admin route is exposed. Trusted local maintenance commands operate under Windows filesystem privileges.
+Never hide old financial records from the Doctor inside an individual patient's profile. Server authorization must enforce these rules on every future endpoint, query, report and export. Current owner accounts are superusers; Doctors receive fixed patient and clinical-record view/add/change permissions as appropriate. No audit write, hard deletion, account administration or export permissions are granted to Doctor. Owners can create and disable/enable Doctors and reset passwords from the local console. Arbitrary custom-role UI and backup/restore remain pending. Financial reports and export are Owner-only. No general Django admin route is exposed. Trusted local maintenance commands operate under Windows filesystem privileges.
 
 ## Patient record
 
@@ -39,7 +39,7 @@ Families can share numbers. Display selection rows with name, permanent number a
 
 ## Interface and scope
 
-Charcoal, blue and light-green accents; accessible light text, clear focus and large controls; local system fonts, responsive layout, text identity only. No invented logo, statistics or money. Dashboard phone search, registration and actual patient count. Right panel reserves appointments and tasks with honest Phase 4 placeholders. Owner account management and pending financial/backup areas. Profile has demographics, prominent medical alerts and functional Overview, Visits, Medical History, Dental Chart, Treatment Plans and Attachments sections. Prescriptions (Phase 4) and Payments (Phase 3) remain visibly pending. Print foundation uses white backgrounds.
+Charcoal, blue and light-green accents; accessible light text, clear focus and large controls; local system fonts, responsive layout, text identity only. No invented logo, statistics or money. Dashboard phone search, registration and actual patient count. Right panel reserves appointments and tasks with honest Phase 4 placeholders. Owner account management and pending financial/backup areas. Profile has demographics, prominent medical alerts and functional Overview, Visits, Medical History, Dental Chart, Treatment Plans and Attachments sections. Payments is functional; prescriptions remain visibly pending for Phase 4. Print foundation uses white backgrounds.
 
 ## Security and audit
 
@@ -83,3 +83,20 @@ Support local and external targets, plus optional Google Drive upload only when 
 ## Live-data gate
 
 No real patient data until backup/restore verification and a fictional-data clinic trial are complete. The trial must check realistic data volume, keyboard use, Windows restarts, interrupted sessions, access boundaries, print needs and reliable local startup. Phase 6 owns final installation packaging. Document limitations honestly; do not treat passing unit tests as full clinical readiness.
+
+
+## Implemented Phase 3 financial contract
+
+Patients have multiple protected treatment accounts; charge items optionally reference existing same-patient plan items/visits. Plan items have a global unique charge link so repeated visits cannot charge the same item again. No clinical text is rewritten. Financial and clinical completion are independent.
+
+Immutable LedgerEntry records hold kind, Decimal amount, reason/description, received_at, recorded_at, actor, method, external reference, unique receipt UUID, unique submission UUID, original correction link and posting balance. Balance = original charges - charge reversals - approved discounts/write-offs - payments + refunds/payment reversals. No float arithmetic or negative balances; positive entries with at most two decimal places only. Cash, bank transfer and Easypaisa only. SQLite writes begin with a singleton FinancialLock UPDATE before balance/idempotency reads; all state changes and audit entries share an atomic transaction. File-backed concurrent-process tests cover competing payments and identical submission tokens.
+
+Doctor can access any individual complete financial history across all dates/closed accounts, today's combined collections, initial schedules and individual reminder balances. Server access checks apply before queries, reports, exports, expense pages and decisions. Doctor receives no combined outstanding or combined historical paid totals, cannot select dates on the today endpoint, and cannot backdate by submitted data. Owner alone approves financial corrections, discounts, write-offs, refunds, schedule revisions and reopening; historical aggregate reports and CSV are Owner-only. Financial routes use the existing fixed Doctor patient permission and active authenticated sessions. No general admin editing/deletion route is introduced.
+
+Posted entries cannot be routinely edited/deleted, including via their model manager. Explicit reasoned reversals link to complete uncorrected originals; refunds link to payments and cannot exceed the uncorrected original amount. Correction requests retain requester, reason, pending/approved/rejected decision, decision reason/actor/time, with duplicate-decision protection and an immutable decision event. Closed accounts require Owner reopening before new postings. Zero-balance closure never posts cash; fully paid and discount/write-off settlement labels differ. Only Owner closes adjusted settlements. AuditEvent links patient transactions/requests/schedules/account events to actor/object/time; immutable Expense originals/reversals retain their own actor, time and reason. Trusted filesystem/ORM maintenance remains outside application authorization and is not tamper-proof.
+
+An immutable Schedule supersedes earlier agreements; positive installment rows sum to the current balance at creation. Payments allocate rows in recorded agreement order (oldest row first), refunds release newest-row allocations first. Signed immutable Allocation records link movements to ledger entries and never add cash. No agreed date means no inferred date. Paid/partial/pending status derives from allocations; overdue means unpaid with due date before today's Asia/Karachi date. Owner revisions retain history and schedule only the current remaining balance. New charges, noncash adjustments or corrections invalidating the schedule mark it historical; refunds beyond current allocations do likewise. Owner must explicitly agree a matching revision. Early settlement pays all remaining rows.
+
+Business ranges use Asia/Karachi [start midnight, midnight after end). Weekly means Monday-Sunday; monthly and annual are calendar periods; custom is inclusive dates. Owner reports distinguish range charges/noncash reductions, gross collections, refunds/reversals, net collections and expenses; method breakdowns are net collections. Net cash movement = net collections - net expenses, not accounting profit. Current outstanding/overdue are labelled present-time balances, not snapshots at the historical report end. Expense corrections use one immutable linked reversal with reason; replacements are separate. CSV contains financial entries and cash-effect columns, excludes clinical fields and prefixes dangerous spreadsheet strings.
+
+Individual print receipts show clinic name/location, patient name/number, account/receipt reference, Pakistan received time, method, amount, posting/current balances and linked later corrections; no other patients or invented tax identifiers. Trial storage stays `<project>/runtime/development`; additive migrations 0004-0005 preserve all original tables. Before local migration: stop writes, verify consistent database + matching-secret safety copy, retain uploads and compare originals after migration. This is not Phase 5 backup/restore.

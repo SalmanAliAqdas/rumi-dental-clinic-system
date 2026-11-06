@@ -11,6 +11,7 @@ from contextlib import closing
 from urllib.request import urlopen
 from urllib.parse import urlsplit
 from playwright.sync_api import sync_playwright
+from finance_browser import check_finance
 
 def check_clinical(page, context, base, password, image_path, database, width):
     page.get_by_role('link', name='+ Start Visit', exact=True).click()
@@ -166,6 +167,7 @@ def run():
                     expected = 200 if username == 'browserowner' else 403
                     assert page.request.get(base + '/accounts/').status == expected
                     assert page.request.get(base + '/audit/').status == expected
+                    check_finance(page, base, profile_url, username, width, ROOT)
                     if username == 'browserdoctor':
                         check_clinical(page, context, base, env['RUMI_BROWSER_PASSWORD'], image_path, Path(data_dir) / 'clinic.sqlite3', width)
                     page.get_by_role('button', name='Log out', exact=True).click()

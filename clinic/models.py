@@ -61,3 +61,5 @@ class LoginAttempt(models.Model):
 
 from .clinical_models import (MedicalReview, Visit, VisitAmendment, Procedure, TreatmentPlan,
     PlanItem, PlanRevision, PerformedWork, ToothObservation, Attachment)
+
+from .finance_models import (FinancialLock, TreatmentAccount, LedgerEntry, Schedule, Installment, Allocation, CorrectionRequest, AccountEvent, Expense)

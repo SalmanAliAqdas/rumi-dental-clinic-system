@@ -537,3 +537,5 @@ form ul:not(.errorlist) {
 .form-actions { flex-wrap: wrap; }
 @media (max-width: 740px) { .tooth-row.adult { grid-template-columns: repeat(8, minmax(0, 1fr)); } .tooth-row.primary { grid-template-columns: repeat(5, minmax(0, 1fr)); } .tooth-picker { padding: 12px; } .tooth { min-height: 58px; } .clinical-alerts { font-size: 14px; } }
 @media print { .clinical-alerts, .tooth, .tooth-static { background: white; color: black; } .clinical-notes dt, .medical-snapshot dt { color: black; } }
+
+.receipt { background: white; color: #172334; } .receipt a { color: #1657a3; } .panel select, .panel input, .panel textarea { max-width: 100%; box-sizing: border-box; } .panel p { overflow-wrap: anywhere; } @media print { .no-print, .main-nav, .app-header, footer, .skip-link { display: none !important; } .receipt { border: 0; box-shadow: none; color: black; background: white; } }

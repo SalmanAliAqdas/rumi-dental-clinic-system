@@ -1,0 +1,7 @@
+﻿{% extends 'base.html' %}
+{% block content %}
+{% if patient %}{% include 'clinical/patient_header.html' %}{% endif %}
+<section class="panel"><h1>{{ heading }}</h1>{% if account %}<p><a href="{% url 'finance_account' patient.pk account.pk %}">{{ account.title }}</a> · Remaining PKR {{ account.totals.balance }}</p>{% endif %}
+<p class="hint">PKR only. Posted transactions are retained. Choose an explicit correction with a reason when needed. Payments may be full or partial; no visit is required.</p>
+<form method="post">{% csrf_token %}{{ form.as_p }}<button type="submit">Save</button></form></section>
+{% endblock %}

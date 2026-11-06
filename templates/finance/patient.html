@@ -1,0 +1,4 @@
+﻿{% extends 'base.html' %}
+{% block content %}{% include 'clinical/patient_header.html' %}
+<section class="panel"><h1>Payments · complete patient history</h1><p><a class="button" href="{% url 'finance_account_new' patient.pk %}">New treatment account</a></p>
+{% for a in accounts %}<article class="panel"><h2><a href="{% url 'finance_account' patient.pk a.pk %}">{{ a.title }}</a></h2><p>{{ a.reference }} · {{ a.status }}</p><p>Remaining PKR {{ a.totals.balance }}</p><a href="{% url 'finance_account' patient.pk a.pk %}">Charges, payments &amp; installments</a></article>{% empty %}<p>No treatment accounts recorded.</p>{% endfor %}</section>{% endblock %}
